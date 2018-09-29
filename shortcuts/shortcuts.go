@@ -1,11 +1,13 @@
 package shortcuts
 
 import (
-	"strings"
 	"strconv"
+	"strings"
 )
 
 const (
+	shortcutsDelim = "\x08\x08"
+
 	null = "\x00"
 	one  = "\x01"
 	two  = "\x02"
@@ -30,7 +32,7 @@ const (
 	stringValue
 	doubleQuoteString
 	dateValue
-	tagsValue
+	sliceValue
 )
 
 type valueType int
@@ -48,7 +50,7 @@ type Shortcut struct {
 	AllowOverlay       bool `shortcut:"AllowOverlay"`
 	IsOpenVr           bool `shortcut:"OpenVR"`
 	LastPlayTime       string `shortcut:"LastPlayTime"`
-	Tags               string `shortcut:"tags"`
+	Tags               []string `shortcut:"tags"`
 }
 
 func (o Shortcut) VdfString() string {
@@ -136,9 +138,9 @@ func (o Shortcut) fields() ([]field) {
 	})
 
 	fields = append(fields, field{
-		name:        tagsField,
-		valueType:   tagsValue,
-		stringValue: o.Tags,
+		name:       tagsField,
+		valueType:  sliceValue,
+		sliceValue: o.Tags,
 	})
 
 	return fields
@@ -148,6 +150,7 @@ type field struct {
 	name        string
 	valueType   valueType
 	stringValue string
+	sliceValue  []string
 	intValue    int
 	boolValue   bool
 }
@@ -169,6 +172,8 @@ func (o field) string() string {
 		o.appendBool(sb)
 	case dateValue:
 		o.appendDate(sb)
+	case sliceValue:
+		o.appendSlice(sb)
 	default:
 		sb.WriteString(null)
 	}
@@ -229,9 +234,17 @@ func (o field) appendDate(sb *strings.Builder) *strings.Builder {
 	return sb
 }
 
-// TODO: Actually do something.
-func (o field) appendTags(sb *strings.Builder) *strings.Builder {
-	sb.WriteString(strings.Repeat(null, 4))
+func (o field) appendSlice(sb *strings.Builder) *strings.Builder {
+	for i, v := range o.sliceValue {
+		sb.WriteString(strconv.Itoa(i))
+		sb.WriteString(null)
+		sb.WriteString(one)
+		sb.WriteString(v)
+
+		if i < len(o.sliceValue) - 1 {
+			sb.WriteString(null)
+		}
+	}
 
 	return sb
 }

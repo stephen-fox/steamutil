@@ -15,7 +15,10 @@ func TestShortcut_VdfString(t *testing.T) {
 		ShortcutPath: "",
 		LaunchOptions: "-one -two \"-three and some\"",
 		LastPlayTime: "",
-		Tags: "",
+		Tags: []string{
+			"cool",
+			"story",
+		},
 	}
 
 	ioutil.WriteFile("/Users/sfox/Desktop/test", []byte(s.VdfString()), 0600)
