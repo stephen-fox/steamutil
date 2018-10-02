@@ -6,11 +6,13 @@ import (
 )
 
 const (
-	shortcutsDelim = "\x08\x08"
-
 	null = "\x00"
 	one  = "\x01"
 	two  = "\x02"
+
+	stringField = one
+	intField    = two
+	sliceField  = null
 
 	appNameField            = "AppName"
 	exePathField            = "Exe"
@@ -31,7 +33,7 @@ const (
 	intValue
 	stringValue
 	doubleQuoteString
-	dateValue
+	epochValue
 	sliceValue
 )
 
@@ -39,18 +41,18 @@ type valueType int
 
 type Shortcut struct {
 	Id                 int
-	AppName            string `shortcut:"AppName"`
-	ExePath            string `shortcut:"Exe"`
-	StartDir           string `shortcut:"StartDir"`
-	IconPath           string `shortcut:"icon"`
-	ShortcutPath       string `shortcut:"ShortcutPath"`
-	LaunchOptions      string `shortcut:"LaunchOptions"`
-	IsHidden           bool `shortcut:"IsHidden"`
-	AllowDesktopConfig bool `shortcut:"AllowDesktopConfig"`
-	AllowOverlay       bool `shortcut:"AllowOverlay"`
-	IsOpenVr           bool `shortcut:"OpenVR"`
-	LastPlayTime       string `shortcut:"LastPlayTime"`
-	Tags               []string `shortcut:"tags"`
+	AppName            string
+	ExePath            string
+	StartDir           string
+	IconPath           string
+	ShortcutPath       string
+	LaunchOptions      string
+	IsHidden           bool
+	AllowDesktopConfig bool
+	AllowOverlay       bool
+	IsOpenVr           bool
+	LastPlayTimeEpoch  int32
+	Tags               []string
 }
 
 func (o Shortcut) VdfString() string {
@@ -132,9 +134,9 @@ func (o Shortcut) fields() ([]field) {
 	})
 
 	fields = append(fields, field{
-		name:        lastPlayTimeField,
-		valueType:   dateValue,
-		stringValue: o.LastPlayTime,
+		name:       lastPlayTimeField,
+		valueType:  epochValue,
+		epochValue: o.LastPlayTimeEpoch,
 	})
 
 	fields = append(fields, field{
@@ -153,6 +155,7 @@ type field struct {
 	sliceValue  []string
 	intValue    int
 	boolValue   bool
+	epochValue  int32
 }
 
 func (o field) string() string {
@@ -170,8 +173,8 @@ func (o field) string() string {
 		o.appendInt(sb)
 	case boolValue:
 		o.appendBool(sb)
-	case dateValue:
-		o.appendDate(sb)
+	case epochValue:
+		o.appendEpoch(sb)
 	case sliceValue:
 		o.appendSlice(sb)
 	default:
@@ -180,7 +183,6 @@ func (o field) string() string {
 
 	return sb.String()
 }
-
 
 func (o field) appendBool(sb *strings.Builder) *strings.Builder {
 	if o.boolValue {
@@ -227,9 +229,9 @@ func (o field) appendInt(sb *strings.Builder) *strings.Builder {
 	return sb
 }
 
-// TODO: Actually do something.
-func (o field) appendDate(sb *strings.Builder) *strings.Builder {
-	sb.WriteString(strings.Repeat(null, 6))
+func (o field) appendEpoch(sb *strings.Builder) *strings.Builder {
+	sb.WriteString(strconv.FormatInt(int64(o.epochValue), 10))
+	sb.WriteString(null)
 
 	return sb
 }
