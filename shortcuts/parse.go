@@ -17,10 +17,9 @@ type RawParser interface {
 }
 
 type defaultRawParser struct {
-	gotId            bool
-	raw              string
-	wip              Shortcut
-	currentFieldName string
+	gotId bool
+	raw   string
+	wip   Shortcut
 }
 
 func (o *defaultRawParser) Parse() (Shortcut, error) {
@@ -29,52 +28,23 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 	}
 
 	if !o.gotId {
-		i, err := strconv.Atoi(string(o.raw[0]))
+		err := o.parseId()
 		if err != nil {
-			return o.wip, errors.New("Failed to parse shortcut ID - " + err.Error())
+			return o.wip, err
 		}
-
-		o.wip.Id = i
-		// Drop the ID + null.
-		if !o.reduce(2) {
-			return o.wip, errors.New("Failed to cut ID field - index out of range")
-		}
-
-		o.gotId = true
 	}
 
-	var currentValueType valueType
-
-	t := string(o.raw[0])
-	switch t {
-	case sliceField:
-		currentValueType = sliceValue
-	case intField:
-		currentValueType = intValue
-	case stringField:
-		currentValueType = stringValue
-	default:
-		return o.wip, fmt.Errorf("%s, %x", "Invalid field type", t)
+	currentValueType, err := o.parseCurrentValueType()
+	if err != nil {
+		return o.wip, err
 	}
 
-	// Drop the type field.
-	if !o.reduce(len(t)) {
-		return o.wip, errors.New("Failed to cut type field - index out of range")
+	currentFieldName, isEnd, err := o.parseFieldName()
+	if err != nil {
+		return o.wip, err
 	}
 
-	if !unicode.IsLetter(rune(o.raw[0])) {
-		return o.wip, errors.New("Field name does not start with a letter")
-	}
-
-	fieldNameEndIndex := strings.Index(o.raw, null)
-	if fieldNameEndIndex < 0 {
-		return o.wip, errors.New("Field name is missing null terminator")
-	}
-
-	o.currentFieldName = string(o.raw[0:fieldNameEndIndex])
-	// Drop the field name and the null terminator.
-	if !o.reduce(fieldNameEndIndex + 1) {
-		// EOF.
+	if isEnd {
 		return o.wip, nil
 	}
 
@@ -102,7 +72,7 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 
 	value := o.raw[0:valueFieldEndIndex]
 
-	switch o.currentFieldName {
+	switch currentFieldName {
 	case appNameField:
 		o.wip.AppName = value
 	case exePathField:
@@ -135,6 +105,66 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 	}
 
 	return o.Parse()
+}
+
+func (o *defaultRawParser) parseId() error {
+	i, err := strconv.Atoi(string(o.raw[0]))
+	if err != nil {
+		return errors.New("Failed to parse shortcut ID - " + err.Error())
+	}
+
+	// Drop the ID + null.
+	if !o.reduce(2) {
+		return errors.New("Failed to cut ID field - index out of range")
+	}
+
+	o.wip.Id = i
+	o.gotId = true
+
+	return nil
+}
+
+func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
+	var currentValueType valueType
+
+	t := string(o.raw[0])
+	switch t {
+	case sliceField:
+		currentValueType = sliceValue
+	case intField:
+		currentValueType = intValue
+	case stringField:
+		currentValueType = stringValue
+	default:
+		return stringValue, fmt.Errorf("%s, %x", "Invalid field type", t)
+	}
+
+	// Drop the type field.
+	if !o.reduce(len(t)) {
+		return stringValue, errors.New("Failed to cut type field - index out of range")
+	}
+
+	return currentValueType, nil
+}
+
+func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error) {
+	if !unicode.IsLetter(rune(o.raw[0])) {
+		return "", false, errors.New("Field name does not start with a letter")
+	}
+
+	fieldNameEndIndex := strings.Index(o.raw, null)
+	if fieldNameEndIndex < 0 {
+		return "", false, errors.New("Field name is missing null terminator")
+	}
+
+	currentFieldName := string(o.raw[0:fieldNameEndIndex])
+	// Drop the field name and the null terminator.
+	if !o.reduce(fieldNameEndIndex + 1) {
+		// EOF.
+		return currentFieldName, true, nil
+	}
+
+	return currentFieldName, false, nil
 }
 
 func (o *defaultRawParser) reduce(startingIndex int) bool {
