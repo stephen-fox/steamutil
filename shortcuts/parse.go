@@ -99,7 +99,7 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 		// TODO: Parse tags field.
 	}
 
-	if !o.reduce(nextStartIndex) {
+	if !o.deleteBeforeIndex(nextStartIndex) {
 		// EOF.
 		return o.wip, nil
 	}
@@ -114,7 +114,7 @@ func (o *defaultRawParser) parseId() error {
 	}
 
 	// Drop the ID + null.
-	if !o.reduce(2) {
+	if !o.deleteBeforeIndex(2) {
 		return errors.New("Failed to cut ID field - index out of range")
 	}
 
@@ -140,7 +140,7 @@ func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
 	}
 
 	// Drop the type field.
-	if !o.reduce(len(t)) {
+	if !o.deleteBeforeIndex(len(t)) {
 		return stringValue, errors.New("Failed to cut type field - index out of range")
 	}
 
@@ -159,7 +159,7 @@ func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error)
 
 	currentFieldName := string(o.raw[0:fieldNameEndIndex])
 	// Drop the field name and the null terminator.
-	if !o.reduce(fieldNameEndIndex + 1) {
+	if !o.deleteBeforeIndex(fieldNameEndIndex + 1) {
 		// EOF.
 		return currentFieldName, true, nil
 	}
@@ -167,7 +167,7 @@ func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error)
 	return currentFieldName, false, nil
 }
 
-func (o *defaultRawParser) reduce(startingIndex int) bool {
+func (o *defaultRawParser) deleteBeforeIndex(startingIndex int) bool {
 	if isIndexOutsideString(startingIndex, o.raw) {
 		return false
 	}
