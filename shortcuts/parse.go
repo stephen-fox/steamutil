@@ -189,52 +189,6 @@ func (o *defaultRawParser) deleteBeforeIndex(index int) bool {
 	return true
 }
 
-func isIndexOutsideString(index int, s string) bool {
-	totalIndexes := len(s) - 1
-
-	if totalIndexes - index < 0 {
-		return true
-	}
-
-	return false
-}
-
-func parseSlice(raw string) []string {
-	var values []string
-
-	raw = strings.TrimPrefix(raw, one)
-
-	for _, s := range strings.Split(raw, null + one) {
-		_, v, wasParsed := parseSliceField(s)
-		if wasParsed {
-			values = append(values, v)
-		}
-	}
-
-	return values
-}
-
-func parseSliceField(raw string) (int, string, bool) {
-	values := strings.Split(raw, null)
-
-	if len(values) < 2 {
-		return 0, "", false
-	}
-
-	e := len(values[0])
-	_ = e
-
-	f := len(values[1])
-	_ = f
-
-	i, err := strconv.Atoi(values[0])
-	if err != nil {
-		return 0, "", false
-	}
-
-	return i, values[1], true
-}
-
 var (
 	fileHeader     = []byte{0, 's', 'h', 'o', 'r', 't', 'c', 'u', 't', 's', 0, 0}
 	shortcutsDelim = []byte{8, 8, 0}
@@ -314,6 +268,53 @@ func parseRawBoolValue(raw string) bool {
 	return b
 }
 
+func parseSlice(raw string) []string {
+	var values []string
+
+	raw = strings.TrimPrefix(raw, one)
+
+	for _, s := range strings.Split(raw, null + one) {
+		_, v, wasParsed := parseSliceField(s)
+		if wasParsed {
+			values = append(values, v)
+		}
+	}
+
+	return values
+}
+
+func parseSliceField(raw string) (int, string, bool) {
+	values := strings.Split(raw, null)
+
+	if len(values) < 2 {
+		return 0, "", false
+	}
+
+	e := len(values[0])
+	_ = e
+
+	f := len(values[1])
+	_ = f
+
+	i, err := strconv.Atoi(values[0])
+	if err != nil {
+		return 0, "", false
+	}
+
+	return i, values[1], true
+}
+
 func trimDoubleQuote(s string) string {
 	return strings.TrimPrefix(strings.TrimSuffix(s, "\""), "\"")
+}
+
+
+func isIndexOutsideString(index int, s string) bool {
+	totalIndexes := len(s) - 1
+
+	if totalIndexes - index < 0 {
+		return true
+	}
+
+	return false
 }
