@@ -48,29 +48,10 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 		return o.wip, nil
 	}
 
-	var valueFieldEndIndex int
-	var nextStartIndex int
-
-	switch currentValueType {
-	case stringValue:
-		valueFieldEndIndex = strings.Index(o.raw, null)
-		nextStartIndex = valueFieldEndIndex + 1
-	case intValue:
-		valueFieldEndIndex = 4
-		nextStartIndex = valueFieldEndIndex
-	case sliceValue:
-		// TODO: Jank.
-		valueFieldEndIndex = strings.LastIndex(o.raw, null)
-		nextStartIndex = valueFieldEndIndex + 1
-	default:
-		return o.wip, errors.New("Unknown field type - " + strconv.Itoa(int(currentValueType)))
+	value, err := o.value(currentValueType)
+	if err != nil {
+		return o.wip, err
 	}
-
-	if isIndexOutsideString(valueFieldEndIndex, o.raw) {
-		return o.wip, errors.New("Value field is missing terminator")
-	}
-
-	value := o.raw[0:valueFieldEndIndex]
 
 	switch currentFieldName {
 	case appNameField:
@@ -99,23 +80,19 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 		// TODO: Parse tags field.
 	}
 
-	if !o.deleteBeforeIndex(nextStartIndex) {
-		// EOF.
-		return o.wip, nil
-	}
-
 	return o.Parse()
 }
 
 func (o *defaultRawParser) parseId() error {
-	i, err := strconv.Atoi(string(o.raw[0]))
-	if err != nil {
-		return errors.New("Failed to parse shortcut ID - " + err.Error())
+	// Drop the ID + null.
+	value, ok := o.get(2, false)
+	if !ok {
+		return errors.New("Failed to cut ID field - index out of range")
 	}
 
-	// Drop the ID + null.
-	if !o.deleteBeforeIndex(2) {
-		return errors.New("Failed to cut ID field - index out of range")
+	i, err := strconv.Atoi(string(value[0]))
+	if err != nil {
+		return errors.New("Failed to parse shortcut ID - " + err.Error())
 	}
 
 	o.wip.Id = i
@@ -125,10 +102,14 @@ func (o *defaultRawParser) parseId() error {
 }
 
 func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
+	value, ok := o.get(1, false)
+	if !ok {
+		return stringValue, errors.New("Failed to read type field - no bytes remaining")
+	}
+
 	var currentValueType valueType
 
-	t := string(o.raw[0])
-	switch t {
+	switch string(value[0]) {
 	case sliceField:
 		currentValueType = sliceValue
 	case intField:
@@ -136,43 +117,77 @@ func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
 	case stringField:
 		currentValueType = stringValue
 	default:
-		return stringValue, fmt.Errorf("%s, %x", "Invalid field type", t)
-	}
-
-	// Drop the type field.
-	if !o.deleteBeforeIndex(len(t)) {
-		return stringValue, errors.New("Failed to cut type field - index out of range")
+		return stringValue, fmt.Errorf("%s, %x", "Invalid field type", value)
 	}
 
 	return currentValueType, nil
 }
 
 func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error) {
-	if !unicode.IsLetter(rune(o.raw[0])) {
-		return "", false, errors.New("Field name does not start with a letter")
-	}
-
-	fieldNameEndIndex := strings.Index(o.raw, null)
-	if fieldNameEndIndex < 0 {
+	// Drop the field name and the null terminator.
+	v, ok := o.get(strings.Index(o.raw, null) + 1, true)
+	if !ok {
 		return "", false, errors.New("Field name is missing null terminator")
 	}
 
-	currentFieldName := string(o.raw[0:fieldNameEndIndex])
-	// Drop the field name and the null terminator.
-	if !o.deleteBeforeIndex(fieldNameEndIndex + 1) {
-		// EOF.
-		return currentFieldName, true, nil
+	if !unicode.IsLetter(rune(v[0])) {
+		return "", false, errors.New("Field name does not start with a letter")
 	}
 
-	return currentFieldName, false, nil
+	return v, false, nil
 }
 
-func (o *defaultRawParser) deleteBeforeIndex(startingIndex int) bool {
-	if isIndexOutsideString(startingIndex, o.raw) {
+func (o *defaultRawParser) value(current valueType) (string, error) {
+	var numToCopy int
+	var excludeLastChar bool
+
+	switch current {
+	case stringValue:
+		numToCopy = strings.Index(o.raw, null) + 1
+		excludeLastChar = true
+	case intValue:
+		numToCopy = 4
+	case sliceValue:
+		// TODO: Jank.
+		numToCopy = strings.LastIndex(o.raw, null) + 1
+		excludeLastChar = true
+	default:
+		return "", errors.New("Unknown field type - " + strconv.Itoa(int(current)))
+	}
+
+	value, ok := o.get(numToCopy, excludeLastChar)
+	if !ok {
+		return "", errors.New("Failed to read value field")
+	}
+
+	return value, nil
+}
+
+func (o *defaultRawParser) get(numberOfBytes int, excludeLastChar bool) (string, bool) {
+	if isIndexOutsideString(numberOfBytes - 1, o.raw) {
+		return "", false
+	}
+
+	value := o.raw[0:numberOfBytes]
+
+	o.raw = o.raw[numberOfBytes:]
+
+	if excludeLastChar {
+		valLen := len(value)
+		if valLen > 0 {
+			value = value[0:valLen-1]
+		}
+	}
+
+	return value, true
+}
+
+func (o *defaultRawParser) deleteBeforeIndex(index int) bool {
+	if isIndexOutsideString(index, o.raw) {
 		return false
 	}
 
-	o.raw = o.raw[startingIndex:]
+	o.raw = o.raw[index:]
 
 	return true
 }
