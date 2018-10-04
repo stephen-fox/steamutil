@@ -263,8 +263,12 @@ func parseSlice(raw string) []string {
 
 	raw = strings.TrimPrefix(raw, soh)
 
-	for _, s := range strings.Split(raw, null + soh) {
-		_, v, wasParsed := parseSliceField(s)
+	for i, s := range strings.Split(raw, null + soh) {
+		id, v, wasParsed := parseSliceField(s)
+		if i != id {
+			return values
+		}
+
 		if wasParsed {
 			values = append(values, v)
 		}
