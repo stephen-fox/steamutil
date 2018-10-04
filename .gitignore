@@ -1,3 +1,6 @@
+# File output tests.
+.testdata/output
+
 # JetBrains.
 *.iml
 .idea/

@@ -1,8 +1,9 @@
 package shortcuts
 
 import (
-	"testing"
 	"io/ioutil"
+	"os"
+	"testing"
 )
 
 func TestShortcut_VdfString(t *testing.T) {
@@ -21,5 +22,20 @@ func TestShortcut_VdfString(t *testing.T) {
 		},
 	}
 
-	ioutil.WriteFile("/Users/sfox/Desktop/test", []byte(s.VdfString()), 0600)
+	rp, err := repoPath()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	fullPath := rp + testDataOutputSubDir
+
+	err = os.MkdirAll(fullPath, 0700)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	err = ioutil.WriteFile(fullPath + "shortcut.vdf", []byte(s.VdfString()), 0600)
+	if err != nil {
+		t.Error(err.Error())
+	}
 }
