@@ -77,7 +77,7 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 	case lastPlayTimeField:
 		o.wip.LastPlayTimeEpoch = parseRawInt32Value(value)
 	case tagsField:
-		// TODO: Parse tags field.
+		o.wip.Tags = parseSlice(value)
 	}
 
 	return o.Parse()
@@ -85,7 +85,7 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 
 func (o *defaultRawParser) parseId() error {
 	// Drop the ID + null.
-	value, ok := o.get(2, false)
+	value, ok := o.get(2, "")
 	if !ok {
 		return errors.New("Failed to cut ID field - index out of range")
 	}
@@ -102,7 +102,7 @@ func (o *defaultRawParser) parseId() error {
 }
 
 func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
-	value, ok := o.get(1, false)
+	value, ok := o.get(1, "")
 	if !ok {
 		return stringValue, errors.New("Failed to read type field - no bytes remaining")
 	}
@@ -125,7 +125,7 @@ func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
 
 func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error) {
 	// Drop the field name and the null terminator.
-	v, ok := o.get(strings.Index(o.raw, null) + 1, true)
+	v, ok := o.get(strings.Index(o.raw, null) + 1, null)
 	if !ok {
 		return "", false, errors.New("Field name is missing null terminator")
 	}
@@ -139,23 +139,23 @@ func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error)
 
 func (o *defaultRawParser) value(current valueType) (string, error) {
 	var numToCopy int
-	var excludeLastChar bool
+	var trim string
 
 	switch current {
 	case stringValue:
 		numToCopy = strings.Index(o.raw, null) + 1
-		excludeLastChar = true
+		trim = null
 	case intValue:
 		numToCopy = 4
 	case sliceValue:
 		// TODO: Jank.
 		numToCopy = strings.LastIndex(o.raw, null) + 1
-		excludeLastChar = true
+		trim = null
 	default:
 		return "", errors.New("Unknown field type - " + strconv.Itoa(int(current)))
 	}
 
-	value, ok := o.get(numToCopy, excludeLastChar)
+	value, ok := o.get(numToCopy, trim)
 	if !ok {
 		return "", errors.New("Failed to read value field")
 	}
@@ -163,7 +163,7 @@ func (o *defaultRawParser) value(current valueType) (string, error) {
 	return value, nil
 }
 
-func (o *defaultRawParser) get(numberOfBytes int, excludeLastChar bool) (string, bool) {
+func (o *defaultRawParser) get(numberOfBytes int, trim string) (string, bool) {
 	if isIndexOutsideString(numberOfBytes - 1, o.raw) {
 		return "", false
 	}
@@ -172,11 +172,8 @@ func (o *defaultRawParser) get(numberOfBytes int, excludeLastChar bool) (string,
 
 	o.raw = o.raw[numberOfBytes:]
 
-	if excludeLastChar {
-		valLen := len(value)
-		if valLen > 0 {
-			value = value[0:valLen-1]
-		}
+	if len(trim) > 0 {
+		value = strings.TrimSuffix(value, trim)
 	}
 
 	return value, true
@@ -202,22 +199,40 @@ func isIndexOutsideString(index int, s string) bool {
 	return false
 }
 
-// TODO: Finish this POS.
-func parseTags(raw string) ([]string, int) {
+func parseSlice(raw string) []string {
 	var values []string
-	expectInt := true
-	for i, s := range strings.Split(raw, null + one) {
-		if expectInt {
-			if !unicode.IsDigit(rune(s[0])) {
-				return values, i
-			}
-			expectInt = false
-		} else {
-			values = append(values, s)
+
+	raw = strings.TrimPrefix(raw, one)
+
+	for _, s := range strings.Split(raw, null + one) {
+		_, v, wasParsed := parseSliceField(s)
+		if wasParsed {
+			values = append(values, v)
 		}
 	}
 
-	return values, 0
+	return values
+}
+
+func parseSliceField(raw string) (int, string, bool) {
+	values := strings.Split(raw, null)
+
+	if len(values) < 2 {
+		return 0, "", false
+	}
+
+	e := len(values[0])
+	_ = e
+
+	f := len(values[1])
+	_ = f
+
+	i, err := strconv.Atoi(values[0])
+	if err != nil {
+		return 0, "", false
+	}
+
+	return i, values[1], true
 }
 
 var (
