@@ -280,12 +280,6 @@ func parseSliceField(raw string) (int, string, bool) {
 		return 0, "", false
 	}
 
-	e := len(values[0])
-	_ = e
-
-	f := len(values[1])
-	_ = f
-
 	i, err := strconv.Atoi(values[0])
 	if err != nil {
 		return 0, "", false
