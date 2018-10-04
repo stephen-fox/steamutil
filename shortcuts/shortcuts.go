@@ -8,11 +8,12 @@ import (
 const (
 	null = "\x00"
 	// soh is the Start of Header character.
-	soh  = "\x01"
-	two  = "\x02"
+	soh = "\x01"
+	// stx is the Start of Text character.
+	stx = "\x02"
 
 	stringField = soh
-	intField    = two
+	intField    = stx
 	sliceField  = null
 
 	appNameField            = "AppName"
@@ -193,7 +194,7 @@ func (o field) appendBool(sb *strings.Builder) *strings.Builder {
 	}
 
 	sb.WriteString(strings.Repeat(null, 3))
-	sb.WriteString(two)
+	sb.WriteString(stx)
 
 	return sb
 }
