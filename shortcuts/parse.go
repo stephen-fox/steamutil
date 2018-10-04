@@ -179,16 +179,6 @@ func (o *defaultRawParser) get(numberOfBytes int, trim string) (string, bool) {
 	return value, true
 }
 
-func (o *defaultRawParser) deleteBeforeIndex(index int) bool {
-	if isIndexOutsideString(index, o.raw) {
-		return false
-	}
-
-	o.raw = o.raw[index:]
-
-	return true
-}
-
 var (
 	fileHeader     = []byte{0, 's', 'h', 'o', 'r', 't', 'c', 'u', 't', 's', 0, 0}
 	shortcutsDelim = []byte{8, 8, 0}
@@ -307,7 +297,6 @@ func parseSliceField(raw string) (int, string, bool) {
 func trimDoubleQuote(s string) string {
 	return strings.TrimPrefix(strings.TrimSuffix(s, "\""), "\"")
 }
-
 
 func isIndexOutsideString(index int, s string) bool {
 	totalIndexes := len(s) - 1
