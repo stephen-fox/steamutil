@@ -6,10 +6,11 @@ import (
 )
 
 const (
+	// null is the null ASCII character.
 	null = "\x00"
-	// soh is the Start of Header character.
+	// soh is the 'Start of Header' ASCII character.
 	soh = "\x01"
-	// stx is the Start of Text character.
+	// stx is the 'Start of Text' ASCII character.
 	stx = "\x02"
 
 	stringField = soh
