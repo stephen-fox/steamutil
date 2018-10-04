@@ -261,9 +261,9 @@ func parseRawBoolValue(raw string) bool {
 func parseSlice(raw string) []string {
 	var values []string
 
-	raw = strings.TrimPrefix(raw, one)
+	raw = strings.TrimPrefix(raw, soh)
 
-	for _, s := range strings.Split(raw, null + one) {
+	for _, s := range strings.Split(raw, null + soh) {
 		_, v, wasParsed := parseSliceField(s)
 		if wasParsed {
 			values = append(values, v)

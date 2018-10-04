@@ -7,10 +7,11 @@ import (
 
 const (
 	null = "\x00"
-	one  = "\x01"
+	// soh is the Start of Header character.
+	soh  = "\x01"
 	two  = "\x02"
 
-	stringField = one
+	stringField = soh
 	intField    = two
 	sliceField  = null
 
@@ -186,7 +187,7 @@ func (o field) string() string {
 
 func (o field) appendBool(sb *strings.Builder) *strings.Builder {
 	if o.boolValue {
-		sb.WriteString(one)
+		sb.WriteString(soh)
 	} else {
 		sb.WriteString(null)
 	}
@@ -203,7 +204,7 @@ func (o field) appendString(sb *strings.Builder) *strings.Builder {
 	}
 
 	sb.WriteString(null)
-	sb.WriteString(one)
+	sb.WriteString(soh)
 
 	return sb
 }
@@ -216,7 +217,7 @@ func (o field) appendDoubleQuoteString(sb *strings.Builder) *strings.Builder {
 	}
 
 	sb.WriteString(null)
-	sb.WriteString(one)
+	sb.WriteString(soh)
 
 	return sb
 }
@@ -224,7 +225,7 @@ func (o field) appendDoubleQuoteString(sb *strings.Builder) *strings.Builder {
 func (o field) appendInt(sb *strings.Builder) *strings.Builder {
 	sb.WriteString(strconv.Itoa(o.intValue))
 	sb.WriteString(null)
-	sb.WriteString(one)
+	sb.WriteString(soh)
 
 	return sb
 }
@@ -240,7 +241,7 @@ func (o field) appendSlice(sb *strings.Builder) *strings.Builder {
 	for i, v := range o.sliceValue {
 		sb.WriteString(strconv.Itoa(i))
 		sb.WriteString(null)
-		sb.WriteString(one)
+		sb.WriteString(soh)
 		sb.WriteString(v)
 
 		if i < len(o.sliceValue) - 1 {
