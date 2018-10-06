@@ -12,17 +12,17 @@ import (
 	"unicode"
 )
 
-type RawParser interface {
+type RawShortcutParser interface {
 	Parse() (Shortcut, error)
 }
 
-type defaultRawParser struct {
+type defaultRawShortcutParser struct {
 	gotId bool
 	raw   string
 	wip   Shortcut
 }
 
-func (o *defaultRawParser) Parse() (Shortcut, error) {
+func (o *defaultRawShortcutParser) Parse() (Shortcut, error) {
 	if len(o.raw) == 0 {
 		return o.wip, nil
 	}
@@ -83,7 +83,7 @@ func (o *defaultRawParser) Parse() (Shortcut, error) {
 	return o.Parse()
 }
 
-func (o *defaultRawParser) parseId() error {
+func (o *defaultRawShortcutParser) parseId() error {
 	// Drop the ID + null.
 	value, ok := o.get(2, "")
 	if !ok {
@@ -101,7 +101,7 @@ func (o *defaultRawParser) parseId() error {
 	return nil
 }
 
-func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
+func (o *defaultRawShortcutParser) parseCurrentValueType() (valueType, error) {
 	value, ok := o.get(1, "")
 	if !ok {
 		return stringValue, errors.New("Failed to read type field - no bytes remaining")
@@ -123,7 +123,7 @@ func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
 	return currentValueType, nil
 }
 
-func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error) {
+func (o *defaultRawShortcutParser) parseFieldName() (name string, isEof bool, err error) {
 	// Drop the field name and the null terminator.
 	v, ok := o.get(strings.Index(o.raw, null) + 1, null)
 	if !ok {
@@ -137,7 +137,7 @@ func (o *defaultRawParser) parseFieldName() (name string, isEof bool, err error)
 	return v, false, nil
 }
 
-func (o *defaultRawParser) value(current valueType) (string, error) {
+func (o *defaultRawShortcutParser) value(current valueType) (string, error) {
 	var numToCopy int
 	var trim string
 
@@ -163,7 +163,7 @@ func (o *defaultRawParser) value(current valueType) (string, error) {
 	return value, nil
 }
 
-func (o *defaultRawParser) get(numberOfBytes int, trim string) (string, bool) {
+func (o *defaultRawShortcutParser) get(numberOfBytes int, trim string) (string, bool) {
 	if isIndexOutsideString(numberOfBytes - 1, o.raw) {
 		return "", false
 	}
@@ -230,8 +230,8 @@ func NewShortcut(rawData string) (Shortcut, error) {
 	return NewRawParser(rawData).Parse()
 }
 
-func NewRawParser(rawData string) RawParser {
-	return &defaultRawParser{
+func NewRawParser(rawData string) RawShortcutParser {
+	return &defaultRawShortcutParser{
 		raw: rawData,
 	}
 }
