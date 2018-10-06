@@ -113,7 +113,7 @@ func (o *defaultRawParser) parseCurrentValueType() (valueType, error) {
 	case sliceField:
 		currentValueType = sliceValue
 	case intField:
-		currentValueType = intValue
+		currentValueType = int32Value
 	case stringField:
 		currentValueType = stringValue
 	default:
@@ -145,7 +145,7 @@ func (o *defaultRawParser) value(current valueType) (string, error) {
 	case stringValue:
 		numToCopy = strings.Index(o.raw, null) + 1
 		trim = null
-	case intValue:
+	case int32Value:
 		numToCopy = 4
 	case sliceValue:
 		// TODO: Jank.

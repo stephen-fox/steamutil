@@ -1,6 +1,7 @@
 package shortcuts
 
 import (
+	"encoding/binary"
 	"strconv"
 	"strings"
 )
@@ -32,11 +33,11 @@ const (
 )
 
 const (
-	boolValue  valueType = iota
-	intValue
+	boolValue valueType = iota
+	idValue
 	stringValue
 	doubleQuoteString
-	epochValue
+	int32Value
 	sliceValue
 )
 
@@ -59,21 +60,21 @@ type Shortcut struct {
 }
 
 func (o Shortcut) VdfString() string {
-	var fieldStrings []string
+	sb := &strings.Builder{}
 
 	for _, f := range o.fields() {
-		fieldStrings = append(fieldStrings, f.string())
+		f.append(sb)
 	}
 
-	return strings.Join(fieldStrings, "")
+	return sb.String()
 }
 
-func (o Shortcut) fields() ([]field) {
+func (o Shortcut) fields() []field {
 	var fields []field
 
 	fields = append(fields, field{
-		valueType: intValue,
-		intValue:  o.Id,
+		valueType: idValue,
+		idValue:   o.Id,
 	})
 
 	fields = append(fields, field{
@@ -138,8 +139,8 @@ func (o Shortcut) fields() ([]field) {
 
 	fields = append(fields, field{
 		name:       lastPlayTimeField,
-		valueType:  epochValue,
-		epochValue: o.LastPlayTimeEpoch,
+		valueType:  int32Value,
+		int32Value: o.LastPlayTimeEpoch,
 	})
 
 	fields = append(fields, field{
@@ -156,38 +157,35 @@ type field struct {
 	valueType   valueType
 	stringValue string
 	sliceValue  []string
-	intValue    int
+	idValue     int
 	boolValue   bool
-	epochValue  int32
+	int32Value  int32
 }
 
-func (o field) string() string {
-	sb := &strings.Builder{}
-
-	sb.WriteString(o.name)
-	sb.WriteString(null)
-
+func (o field) append(sb *strings.Builder) {
 	switch o.valueType {
 	case stringValue:
 		o.appendString(sb)
 	case doubleQuoteString:
 		o.appendDoubleQuoteString(sb)
-	case intValue:
-		o.appendInt(sb)
+	case idValue:
+		o.appendId(sb)
 	case boolValue:
 		o.appendBool(sb)
-	case epochValue:
-		o.appendEpoch(sb)
+	case int32Value:
+		o.appendInt32(sb)
 	case sliceValue:
 		o.appendSlice(sb)
 	default:
 		sb.WriteString(null)
 	}
-
-	return sb.String()
 }
 
-func (o field) appendBool(sb *strings.Builder) *strings.Builder {
+func (o field) appendBool(sb *strings.Builder) {
+	sb.WriteString(intField)
+	sb.WriteString(o.name)
+	sb.WriteString(null)
+
 	if o.boolValue {
 		sb.WriteString(soh)
 	} else {
@@ -195,23 +193,25 @@ func (o field) appendBool(sb *strings.Builder) *strings.Builder {
 	}
 
 	sb.WriteString(strings.Repeat(null, 3))
-	sb.WriteString(stx)
-
-	return sb
 }
 
-func (o field) appendString(sb *strings.Builder) *strings.Builder {
+func (o field) appendString(sb *strings.Builder){
+	sb.WriteString(stringField)
+	sb.WriteString(o.name)
+	sb.WriteString(null)
+
 	if len(o.stringValue) > 0 {
 		sb.WriteString(o.stringValue)
 	}
 
 	sb.WriteString(null)
-	sb.WriteString(soh)
-
-	return sb
 }
 
-func (o field) appendDoubleQuoteString(sb *strings.Builder) *strings.Builder {
+func (o field) appendDoubleQuoteString(sb *strings.Builder) {
+	sb.WriteString(stringField)
+	sb.WriteString(o.name)
+	sb.WriteString(null)
+
 	if len(o.stringValue) > 0 {
 		sb.WriteString("\"")
 		sb.WriteString(o.stringValue)
@@ -219,37 +219,34 @@ func (o field) appendDoubleQuoteString(sb *strings.Builder) *strings.Builder {
 	}
 
 	sb.WriteString(null)
-	sb.WriteString(soh)
-
-	return sb
 }
 
-func (o field) appendInt(sb *strings.Builder) *strings.Builder {
-	sb.WriteString(strconv.Itoa(o.intValue))
+func (o field) appendId(sb *strings.Builder) {
 	sb.WriteString(null)
-	sb.WriteString(soh)
-
-	return sb
-}
-
-func (o field) appendEpoch(sb *strings.Builder) *strings.Builder {
-	sb.WriteString(strconv.FormatInt(int64(o.epochValue), 10))
+	sb.WriteString(strconv.Itoa(o.idValue))
 	sb.WriteString(null)
-
-	return sb
 }
 
-func (o field) appendSlice(sb *strings.Builder) *strings.Builder {
+func (o field) appendInt32(sb *strings.Builder) {
+	sb.WriteString(intField)
+	sb.WriteString(o.name)
+	sb.WriteString(null)
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, uint32(o.int32Value))
+	sb.WriteString(string(b))
+}
+
+func (o field) appendSlice(sb *strings.Builder) {
+	sb.WriteString(null)
+	sb.WriteString(o.name)
+
 	for i, v := range o.sliceValue {
+		sb.WriteString(null)
+		sb.WriteString(stringField)
 		sb.WriteString(strconv.Itoa(i))
 		sb.WriteString(null)
-		sb.WriteString(soh)
 		sb.WriteString(v)
-
-		if i < len(o.sliceValue) - 1 {
-			sb.WriteString(null)
-		}
 	}
 
-	return sb
+	sb.WriteString(null)
 }
