@@ -2,6 +2,7 @@ package shortcuts
 
 import (
 	"encoding/binary"
+	"io"
 	"strconv"
 	"strings"
 )
@@ -59,91 +60,95 @@ type Shortcut struct {
 	Tags               []string
 }
 
-func (o Shortcut) VdfString() string {
+func (o Shortcut) VdfV1String(footer []byte) string {
 	sb := &strings.Builder{}
 
 	for _, f := range o.fields() {
-		f.append(sb)
+		f.appendFieldV1(sb)
+	}
+
+	if len(fileFooter) > 0 {
+		sb.Write(footer)
 	}
 
 	return sb.String()
 }
 
-func (o Shortcut) fields() []field {
-	var fields []field
+func (o Shortcut) fields() []vdfField {
+	var fields []vdfField
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		valueType: idValue,
 		idValue:   o.Id,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:        appNameField,
 		valueType:   stringValue,
 		stringValue: o.AppName,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:        exePathField,
 		valueType:   doubleQuoteString,
 		stringValue: o.ExePath,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:        startDirField,
 		valueType:   doubleQuoteString,
 		stringValue: o.StartDir,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:        iconPathField,
 		valueType:   stringValue,
 		stringValue: o.IconPath,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:        shortcutPathField,
 		valueType:   stringValue,
 		stringValue: o.ShortcutPath,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:        launchOptionsField,
 		valueType:   stringValue,
 		stringValue: o.LaunchOptions,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:      isHiddenField,
 		valueType: boolValue,
 		boolValue: o.IsHidden,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:      allowDesktopConfigField,
 		valueType: boolValue,
 		boolValue: o.AllowDesktopConfig,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:      allowOverlayField,
 		valueType: boolValue,
 		boolValue: o.AllowOverlay,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:      isOpenVrField,
 		valueType: boolValue,
 		boolValue: o.IsOpenVr,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:       lastPlayTimeField,
 		valueType:  int32Value,
 		int32Value: o.LastPlayTimeEpoch,
 	})
 
-	fields = append(fields, field{
+	fields = append(fields, vdfField{
 		name:       tagsField,
 		valueType:  sliceValue,
 		sliceValue: o.Tags,
@@ -152,7 +157,7 @@ func (o Shortcut) fields() []field {
 	return fields
 }
 
-type field struct {
+type vdfField struct {
 	name        string
 	valueType   valueType
 	stringValue string
@@ -162,26 +167,26 @@ type field struct {
 	int32Value  int32
 }
 
-func (o field) append(sb *strings.Builder) {
+func (o vdfField) appendFieldV1(sb *strings.Builder) {
 	switch o.valueType {
 	case stringValue:
-		o.appendString(sb)
+		o.appendStringV1(sb)
 	case doubleQuoteString:
-		o.appendDoubleQuoteString(sb)
+		o.appendDoubleQuoteStringV1(sb)
 	case idValue:
-		o.appendId(sb)
+		o.appendIdV1(sb)
 	case boolValue:
-		o.appendBool(sb)
+		o.appendBoolV1(sb)
 	case int32Value:
-		o.appendInt32(sb)
+		o.appendInt32V1(sb)
 	case sliceValue:
-		o.appendSlice(sb)
+		o.appendSliceV1(sb)
 	default:
 		sb.WriteString(null)
 	}
 }
 
-func (o field) appendBool(sb *strings.Builder) {
+func (o vdfField) appendBoolV1(sb *strings.Builder) {
 	sb.WriteString(intField)
 	sb.WriteString(o.name)
 	sb.WriteString(null)
@@ -195,7 +200,7 @@ func (o field) appendBool(sb *strings.Builder) {
 	sb.WriteString(strings.Repeat(null, 3))
 }
 
-func (o field) appendString(sb *strings.Builder){
+func (o vdfField) appendStringV1(sb *strings.Builder){
 	sb.WriteString(stringField)
 	sb.WriteString(o.name)
 	sb.WriteString(null)
@@ -207,7 +212,7 @@ func (o field) appendString(sb *strings.Builder){
 	sb.WriteString(null)
 }
 
-func (o field) appendDoubleQuoteString(sb *strings.Builder) {
+func (o vdfField) appendDoubleQuoteStringV1(sb *strings.Builder) {
 	sb.WriteString(stringField)
 	sb.WriteString(o.name)
 	sb.WriteString(null)
@@ -221,13 +226,12 @@ func (o field) appendDoubleQuoteString(sb *strings.Builder) {
 	sb.WriteString(null)
 }
 
-func (o field) appendId(sb *strings.Builder) {
-	sb.WriteString(null)
+func (o vdfField) appendIdV1(sb *strings.Builder) {
 	sb.WriteString(strconv.Itoa(o.idValue))
 	sb.WriteString(null)
 }
 
-func (o field) appendInt32(sb *strings.Builder) {
+func (o vdfField) appendInt32V1(sb *strings.Builder) {
 	sb.WriteString(intField)
 	sb.WriteString(o.name)
 	sb.WriteString(null)
@@ -236,7 +240,7 @@ func (o field) appendInt32(sb *strings.Builder) {
 	sb.WriteString(string(b))
 }
 
-func (o field) appendSlice(sb *strings.Builder) {
+func (o vdfField) appendSliceV1(sb *strings.Builder) {
 	sb.WriteString(null)
 	sb.WriteString(o.name)
 
@@ -249,4 +253,31 @@ func (o field) appendSlice(sb *strings.Builder) {
 	}
 
 	sb.WriteString(null)
+}
+
+func WriteVdfV1(shortcuts []Shortcut, w io.Writer) error {
+	_, err := w.Write(fileHeader)
+	if err != nil {
+		return err
+	}
+
+	for i, s := range shortcuts {
+		var footer []byte
+
+		if i < len(shortcuts) - 1 {
+			footer = shortcutsDelim
+		}
+
+		_, err := w.Write([]byte(s.VdfV1String(footer)))
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = w.Write(fileFooter)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
