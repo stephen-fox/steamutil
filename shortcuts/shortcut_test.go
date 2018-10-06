@@ -1,6 +1,8 @@
 package shortcuts
 
 import (
+	"bytes"
+	"crypto/sha1"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -92,6 +94,50 @@ func TestWriteVdfV1(t *testing.T) {
 	err = WriteVdfV1(shortcuts, f)
 	if err != nil {
 		t.Error(err.Error())
+	}
+}
+
+func TestReadAndWrite(t *testing.T) {
+	p, err := shortcutsVdfV1TestPath()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	f, err := os.Open(p + threeEntriesVdfName)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	defer f.Close()
+
+	shortcuts, err := Shortcuts(f)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	newFileBuffer := bytes.NewBuffer([]byte{})
+
+	err = WriteVdfV1(shortcuts, newFileBuffer)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	originalHash, err := getHash(f, sha1.New())
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	newHash, err := getHash(newFileBuffer, sha1.New())
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if newHash != originalHash {
+		t.Error("Hashes do not match")
 	}
 }
 
