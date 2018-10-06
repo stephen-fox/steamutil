@@ -16,7 +16,7 @@ const (
 	threeEntriesVdfName  = "3-entries.vdf"
 )
 
-func TestNewShortcuts(t *testing.T) {
+func TestShortcutsFromFile(t *testing.T) {
 	rp, err := shortcutsVdfV1TestPath()
 	if err != nil {
 		t.Error(err.Error())
@@ -169,10 +169,6 @@ func TestNewShortcuts(t *testing.T) {
 	if gotIds[2] != 2 {
 		t.Error("Shortcut ID at 2 is wrong. Got -", gotIds[2])
 	}
-}
-
-func TestNewShortcut(t *testing.T) {
-	// TODO: todo.
 }
 
 func shortcutsVdfV1TestPath() (string, error) {

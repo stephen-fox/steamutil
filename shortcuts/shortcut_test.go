@@ -3,17 +3,19 @@ package shortcuts
 import (
 	"bytes"
 	"crypto/sha1"
-	"io/ioutil"
+	"encoding/binary"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 )
 
-func TestShortcut_VdfString(t *testing.T) {
+func TestShortcut_VdfV1String(t *testing.T) {
 	s := Shortcut{
 		Id:                0,
-		AppName:           "My Cool app",
-		ExePath:           "/path/to/my cool app",
-		StartDir:          "/path/to",
+		AppName:           "Chess",
+		ExePath:           "/Applications/Chess.app",
+		StartDir:          "/Applications",
 		IconPath:          "",
 		ShortcutPath:      "",
 		LaunchOptions:     "-one -two \"-three and some\"",
@@ -24,14 +26,11 @@ func TestShortcut_VdfString(t *testing.T) {
 		},
 	}
 
-	dir, err := setupTestDataOutputDir()
-	if err != nil {
-		t.Error(err.Error())
-	}
+	data := handJamShortcut(s)
+	result := s.VdfV1String([]byte{})
 
-	err = ioutil.WriteFile(dir + "shortcut.vdf", []byte(s.VdfV1String([]byte{})), 0600)
-	if err != nil {
-		t.Error(err.Error())
+	if result != data {
+		t.Error("Shortcut string is not equal to data:\nExp: '" + data + "'\nGot: '" + result + "'")
 	}
 }
 
@@ -139,6 +138,119 @@ func TestReadAndWrite(t *testing.T) {
 	if newHash != originalHash {
 		t.Error("Hashes do not match")
 	}
+}
+
+func handJamShortcut(s Shortcut) string {
+	sb := &strings.Builder{}
+
+	sb.WriteString("0")
+	sb.WriteString(null)
+	sb.WriteString(stringField)
+	sb.WriteString(appNameField)
+	sb.WriteString(null)
+	sb.WriteString(s.AppName)
+	sb.WriteString(null)
+
+	sb.WriteString(stringField)
+	sb.WriteString(exePathField)
+	sb.WriteString(null)
+	sb.WriteString("\"")
+	sb.WriteString(s.ExePath)
+	sb.WriteString("\"")
+	sb.WriteString(null)
+
+	sb.WriteString(stringField)
+	sb.WriteString(startDirField)
+	sb.WriteString(null)
+	sb.WriteString("\"")
+	sb.WriteString(s.StartDir)
+	sb.WriteString("\"")
+	sb.WriteString(null)
+
+	sb.WriteString(stringField)
+	sb.WriteString(iconPathField)
+	sb.WriteString(null)
+	if len(s.IconPath) > 0 {
+		sb.WriteString(s.IconPath)
+	}
+	sb.WriteString(null)
+
+	sb.WriteString(stringField)
+	sb.WriteString(shortcutPathField)
+	sb.WriteString(null)
+	if len(s.ShortcutPath) > 0 {
+		sb.WriteString(s.ShortcutPath)
+	}
+	sb.WriteString(null)
+
+	sb.WriteString(stringField)
+	sb.WriteString(launchOptionsField)
+	sb.WriteString(null)
+	if len(s.LaunchOptions) > 0 {
+		sb.WriteString(s.LaunchOptions)
+	}
+	sb.WriteString(null)
+
+	sb.WriteString(intField)
+	sb.WriteString(isHiddenField)
+	sb.WriteString(null)
+	if s.IsHidden {
+		sb.WriteString(soh)
+	} else {
+		sb.WriteString(null)
+	}
+	sb.WriteString(strings.Repeat(null, 3))
+
+	sb.WriteString(intField)
+	sb.WriteString(allowDesktopConfigField)
+	sb.WriteString(null)
+	if s.AllowDesktopConfig {
+		sb.WriteString(soh)
+	} else {
+		sb.WriteString(null)
+	}
+	sb.WriteString(strings.Repeat(null, 3))
+
+	sb.WriteString(intField)
+	sb.WriteString(allowOverlayField)
+	sb.WriteString(null)
+	if s.AllowOverlay {
+		sb.WriteString(soh)
+	} else {
+		sb.WriteString(null)
+	}
+	sb.WriteString(strings.Repeat(null, 3))
+
+	sb.WriteString(intField)
+	sb.WriteString(isOpenVrField)
+	sb.WriteString(null)
+	if s.IsHidden {
+		sb.WriteString(soh)
+	} else {
+		sb.WriteString(null)
+	}
+	sb.WriteString(strings.Repeat(null, 3))
+
+	sb.WriteString(intField)
+	sb.WriteString(lastPlayTimeField)
+	sb.WriteString(null)
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, uint32(s.LastPlayTimeEpoch))
+	sb.Write(b)
+
+	sb.WriteString(null)
+	sb.WriteString(tagsField)
+	for i, v := range s.Tags {
+		sb.WriteString(null)
+		sb.WriteString(soh)
+		sb.WriteString(strconv.Itoa(i))
+		sb.WriteString(null)
+		sb.WriteString(v)
+	}
+
+	sb.WriteString(null)
+
+	return sb.String()
 }
 
 func setupTestDataOutputDir() (string, error) {
