@@ -67,7 +67,7 @@ func (o Shortcut) VdfV1String(footer []byte) string {
 		f.appendFieldV1(sb)
 	}
 
-	if len(fileFooter) > 0 {
+	if len(footer) > 0 {
 		sb.Write(footer)
 	}
 
