@@ -26,8 +26,10 @@ func TestShortcut_VdfV1String(t *testing.T) {
 		},
 	}
 
-	data := handJamShortcut(s)
 	result := s.VdfV1String([]byte{})
+	sb := &strings.Builder{}
+	handJamShortcutToVdfV1(s, sb)
+	data := sb.String()
 
 	if result != data {
 		t.Error("Shortcut string is not equal to data:\nExp: '" + data + "'\nGot: '" + result + "'")
@@ -80,19 +82,26 @@ func TestWriteVdfV1(t *testing.T) {
 		},
 	}
 
-	dir, err := setupTestDataOutputDir()
+	rawData := bytes.NewBuffer([]byte{})
+	err := WriteVdfV1(shortcuts, rawData)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	f, err := os.OpenFile(dir + "/shortcuts.vdf", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
-	if err != nil {
-		t.Error(err.Error())
+	sb := &strings.Builder{}
+	sb.Write(fileHeader)
+	for i, s := range shortcuts {
+		handJamShortcutToVdfV1(s, sb)
+		if i < len(shortcuts) - 1 {
+			sb.Write(shortcutsDelim)
+		}
 	}
+	sb.Write(fileFooter)
 
-	err = WriteVdfV1(shortcuts, f)
-	if err != nil {
-		t.Error(err.Error())
+	data := rawData.String()
+	expected := sb.String()
+	if data != expected {
+		t.Error("Shortcut file data is not equal to expected\nExp: '" + expected + "'\nGot: '" + data + "'")
 	}
 }
 
@@ -140,10 +149,8 @@ func TestReadAndWrite(t *testing.T) {
 	}
 }
 
-func handJamShortcut(s Shortcut) string {
-	sb := &strings.Builder{}
-
-	sb.WriteString("0")
+func handJamShortcutToVdfV1(s Shortcut, sb *strings.Builder) {
+	sb.WriteString(strconv.Itoa(s.Id))
 	sb.WriteString(null)
 	sb.WriteString(stringField)
 	sb.WriteString(appNameField)
@@ -249,8 +256,6 @@ func handJamShortcut(s Shortcut) string {
 	}
 
 	sb.WriteString(null)
-
-	return sb.String()
 }
 
 func setupTestDataOutputDir() (string, error) {
