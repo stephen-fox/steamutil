@@ -165,3 +165,42 @@ func (o defaultField) appendSliceV1(sb *strings.Builder) {
 
 	sb.WriteString(null)
 }
+
+func NewBoolField(name string, value bool) Field {
+	return &defaultField{
+		name:      name,
+		valueType: boolValue,
+		boolValue: value,
+	}
+}
+
+func NewStringField(name string, value string) Field {
+	return &defaultField{
+		name:        name,
+		valueType:   stringValue,
+		stringValue: value,
+	}
+}
+
+func NewInt32Field(name string, value int32) Field {
+	return &defaultField{
+		name:       name,
+		valueType:  int32Value,
+		int32Value: value,
+	}
+}
+
+func NewSliceField(name string, value []string) Field {
+	return &defaultField{
+		name:       name,
+		valueType:  sliceValue,
+		sliceValue: value,
+	}
+}
+
+func NewIdField(value int) Field {
+	return &defaultField{
+		valueType: idValue,
+		idValue:   value,
+	}
+}

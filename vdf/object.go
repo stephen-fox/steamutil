@@ -15,8 +15,7 @@ type Object interface {
 }
 
 type defaultObject struct {
-	version FormatVersion
-	fields  []Field
+	fields []Field
 }
 
 func (o *defaultObject) Fields() []Field {
@@ -189,6 +188,16 @@ func (o *v1ObjectParser) get(numberOfBytes int, trim string) (string, bool) {
 	return value, true
 }
 
+func NewEmptyObject() Object {
+	return &defaultObject{}
+}
+
+func NewObject(fields []Field) Object {
+	return &defaultObject{
+		fields: fields,
+	}
+}
+
 func ParseRawObject(rawData string, version FormatVersion) (Object, error) {
 	p, err := NewRawObjectParser(rawData, version)
 	if err != nil {
@@ -203,9 +212,7 @@ func NewRawObjectParser(rawData string, version FormatVersion) (RawObjectParser,
 	case V1:
 		return &v1ObjectParser{
 			raw:    rawData,
-			result: &defaultObject{
-				version: version,
-			},
+			result: &defaultObject{},
 		}, nil
 	}
 
