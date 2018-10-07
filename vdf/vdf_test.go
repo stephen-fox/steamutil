@@ -1,9 +1,8 @@
 package vdf
 
 import (
-	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -19,6 +18,30 @@ const (
 	shortcutsVdfSubDir   = testDataSubDir + "shortcuts-vdf-v1/"
 	threeEntriesVdfName  = "3-entries.vdf"
 )
+
+func TestNewConstructorV1(t *testing.T) {
+	o := Options{
+		Name: "junk",
+		Version: V1,
+	}
+
+	_, err := NewConstructor(o)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}
+
+func TestNewConstructorUnknown(t *testing.T) {
+	o := Options{
+		Name: "junk",
+		Version: FormatVersion(3333),
+	}
+
+	_, err := NewConstructor(o)
+	if err == nil {
+		t.Error("New constructor with bad version did not error")
+	}
+}
 
 func TestV1Constructor_Read(t *testing.T) {
 	o := Options{
@@ -47,43 +70,118 @@ func TestV1Constructor_Read(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	_, err = f.Seek(0, 0)
-	if err != nil {
-		t.Error(err.Error())
-	}
-
-	b, _ := ioutil.ReadAll(f)
-
-	fmt.Println("Exp:", string(b))
-
 	s, err := v.String()
 	if err != nil {
-		t.Error()
+		t.Error(err.Error())
 	}
-
-	fmt.Println("Got:", s)
 
 	_, err = f.Seek(0, 0)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	originalHash, err := getHash(f, sha1.New())
+	raw, err := ioutil.ReadAll(f)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	r := strings.NewReader(s)
+	original := string(raw)
 
-	newHash, err := getHash(r, sha1.New())
+	if s != original {
+		t.Error("New string does not match current file\nExp: '" + original + "'\nGot: '" + s + "'")
+	}
+}
+
+func TestV1Constructor_Build(t *testing.T) {
+	o := Options{
+		Name:    "test",
+		Version: V1,
+	}
+
+	c, err := NewConstructor(o)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	if newHash != originalHash {
-		t.Error("hashes not equal")
+	o0 := NewObject([]Field{
+		NewIdField(0),
+		NewStringField("MyField", "One"),
+		NewBoolField("IsAwesome", true),
+		NewInt32Field("Blerg", 666),
+		NewSliceField("Stuff", []string{"one thing", "two thing"}),
+	})
+
+	o1 := NewObject([]Field{
+		NewIdField(1),
+		NewStringField("MyField", "Woah"),
+		NewBoolField("IsAwesome", false),
+		NewInt32Field("Blerg", 0),
+		NewSliceField("Stuff", []string{}),
+	})
+
+	v := c.Build([]Object{o0, o1})
+
+	result, err := v.String()
+	if err != nil {
+		t.Error(err.Error())
 	}
 
+	sb := &strings.Builder{}
+	sb.Write([]byte{0, 't', 'e', 's', 't', 0, 0, '0', 0, 1})
+	sb.WriteString("MyField")
+	sb.WriteString(null)
+	sb.WriteString("One")
+	sb.WriteString(null)
+	sb.WriteString(intField)
+	sb.WriteString("IsAwesome")
+	sb.WriteString(null)
+	sb.WriteString(soh)
+	sb.WriteString(strings.Repeat(null, 3))
+	sb.WriteString(intField)
+	sb.WriteString("Blerg")
+	sb.WriteString(null)
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, 666)
+	sb.Write(b)
+	sb.WriteString(null)
+	sb.WriteString("Stuff")
+	sb.WriteString(null)
+	sb.WriteString(stringField)
+	sb.WriteString("0")
+	sb.WriteString(null)
+	sb.WriteString("one thing")
+	sb.WriteString(null)
+	sb.WriteString(stringField)
+	sb.WriteString("1")
+	sb.WriteString(null)
+	sb.WriteString("two thing")
+
+	sb.Write([]byte{0, 8, 8, 0, '1', 0, 1})
+	sb.WriteString("MyField")
+	sb.WriteString(null)
+	sb.WriteString("Woah")
+	sb.WriteString(null)
+	sb.WriteString(intField)
+	sb.WriteString("IsAwesome")
+	sb.WriteString(null)
+	sb.WriteString(strings.Repeat(null, 4))
+	sb.WriteString(intField)
+	sb.WriteString("Blerg")
+	sb.WriteString(null)
+	b = make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, 0)
+	sb.Write(b)
+	sb.WriteString(null)
+	sb.WriteString("Stuff")
+
+	sb.Write([]byte{0, 8, 8, 8, 8})
+
+	expect := sb.String()
+
+	if result != expect {
+		t.Error("Generater vdf string is not equal to expected value.\nExp: '" +
+			expect + "'\nGot: '" + result + "'")
+	}
 }
 
 func shortcutsVdfV1TestPath() (string, error) {
