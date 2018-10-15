@@ -2,6 +2,7 @@ package locations
 
 import (
 	"log"
+	"os"
 	"path"
 	"testing"
 )
@@ -17,6 +18,18 @@ func TestDataDirPath(t *testing.T) {
 	}
 
 	log.Println(p)
+}
+
+func TestDefaultDataVerifier_DataDirPath(t *testing.T) {
+	v, err := NewDataVerifier()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	_, err = os.Stat(v.RootDirPath())
+	if err != nil {
+		t.Error(err.Error())
+	}
 }
 
 func TestDefaultDataVerifier_UserDataDirPath(t *testing.T) {

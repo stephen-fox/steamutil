@@ -17,8 +17,18 @@ const (
 // DataVerifier gets and verifies file and directory paths to data-related
 // Steam locations.
 type DataVerifier interface {
+	// RootDirPath returns the path to the root Steam data directory.
+	RootDirPath() string
+
+	// UserDataDirPath returns the path to the user data directory.
 	UserDataDirPath() (string, os.FileInfo, error)
+
+	// UserIdsToDataDirPaths returns a map of local Steam user IDs
+	// to their data storage directories.
 	UserIdsToDataDirPaths() (map[string]string, error)
+
+	// ShortcutsFilePath returns the path to the shortcuts file for a
+	// given Steam user ID.
 	ShortcutsFilePath(userId string) (string, os.FileInfo, error)
 }
 
@@ -26,8 +36,6 @@ type defaultDataVerifier struct {
 	dataDir string
 }
 
-// ShortcutsFilePath returns the path to the shortcuts file for a given Steam
-// user ID.
 func (o defaultDataVerifier) ShortcutsFilePath(userId string) (string, os.FileInfo, error) {
 	filePath := ShortcutsFilePath(o.dataDir, userId)
 
@@ -39,8 +47,6 @@ func (o defaultDataVerifier) ShortcutsFilePath(userId string) (string, os.FileIn
 	return filePath, i, nil
 }
 
-// UserIdsToDataDirPaths returns a map of local Steam user IDs to their data
-// storage directories.
 func (o defaultDataVerifier) UserIdsToDataDirPaths() (map[string]string, error) {
 	idsToDirs := make(map[string]string)
 
@@ -61,7 +67,6 @@ func (o defaultDataVerifier) UserIdsToDataDirPaths() (map[string]string, error) 
 	return idsToDirs, nil
 }
 
-// UserDataDirPath returns the path to the user data directory.
 func (o defaultDataVerifier) UserDataDirPath() (string, os.FileInfo, error) {
 	dirPath := UserDataDirPath(o.dataDir)
 
@@ -71,6 +76,10 @@ func (o defaultDataVerifier) UserDataDirPath() (string, os.FileInfo, error) {
 	}
 
 	return dirPath, i, nil
+}
+
+func (o defaultDataVerifier) RootDirPath() string {
+	return o.dataDir
 }
 
 // ShortcutsFilePath generates a path to the shortcuts file for the specified
