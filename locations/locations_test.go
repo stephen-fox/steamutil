@@ -19,12 +19,17 @@ func TestDataDirPath(t *testing.T) {
 	log.Println(p)
 }
 
-func TestUserDataDirPath(t *testing.T) {
+func TestDefaultDataVerifier_UserDataDirPath(t *testing.T) {
 	if !IsInstalled() {
 		t.Skip()
 	}
 
-	p, i, err := UserDataDirPath()
+	v, err := NewDataVerifier()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	p, i, err := v.UserDataDirPath()
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -36,12 +41,17 @@ func TestUserDataDirPath(t *testing.T) {
 	log.Println(p)
 }
 
-func TestUserIdsToDataDirPaths(t *testing.T) {
+func TestDefaultDataVerifier_UserIdsToDataDirPaths(t *testing.T) {
 	if !IsInstalled() {
 		t.Skip()
 	}
 
-	m, err := UserIdsToDataDirPaths()
+	v, err := NewDataVerifier()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	m, err := v.UserIdsToDataDirPaths()
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -49,12 +59,17 @@ func TestUserIdsToDataDirPaths(t *testing.T) {
 	log.Println(m)
 }
 
-func TestShortcutsFilePath(t *testing.T) {
+func TestDefaultDataVerifier_ShortcutsFilePath(t *testing.T) {
 	if !IsInstalled() {
 		t.Skip()
 	}
 
-	p, i, err := ShortcutsFilePath("34161670")
+	v, err := NewDataVerifier()
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	p, i, err := v.ShortcutsFilePath("34161670")
 	if err != nil {
 		t.Error(err.Error())
 		return
