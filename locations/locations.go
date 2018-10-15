@@ -96,7 +96,6 @@ func DataDirPath() (string, os.FileInfo, error) {
 		return "", nil, errors.New("Linux is not currently supported :(")
 	case "windows":
 		return "", nil, errors.New("Windows is not currently supported :(")
-
 	}
 
 	i, err := os.Stat(dirPath)
