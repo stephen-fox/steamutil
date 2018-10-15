@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	userdataDirName   = "userdata"
+	userDataDirName   = "userdata"
+	userConfigDirName = "config"
 	shortcutsFileName = "shortcuts.vdf"
 )
 
@@ -26,7 +27,7 @@ func ShortcutsFilePath(userId string) (string, os.FileInfo, error) {
 		return "", nil, errors.New("The specified user ID does not exist")
 	}
 
-	filePath := path.Join(dirPath, shortcutsFileName)
+	filePath := path.Join(dirPath, userConfigDirName, shortcutsFileName)
 
 	i, err := os.Stat(filePath)
 	if err != nil {
@@ -65,7 +66,7 @@ func UserDataDirPath() (string, os.FileInfo, error) {
 		return "", nil, err
 	}
 
-	dirPath := path.Join(data, userdataDirName)
+	dirPath := path.Join(data, userDataDirName)
 
 	i, err := os.Stat(dirPath)
 	if err != nil {

@@ -56,7 +56,7 @@ func TestShortcutsFilePath(t *testing.T) {
 
 	p, i, err := ShortcutsFilePath("34161670")
 	if err != nil {
-		log.Println(err.Error())
+		t.Error(err.Error())
 		return
 	}
 
