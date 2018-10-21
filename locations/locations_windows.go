@@ -30,13 +30,13 @@ func DataDirPath() (string, os.FileInfo, error) {
 	for _, letter := range driveLetters {
 		letter := letter + ":\\"
 
-		target := filepath.Join(letter, programFiles86, "Steam", userDataDirName)
+		target := filepath.Join(letter, programFiles86, "Steam")
 		info, statErr := os.Stat(target)
 		if statErr == nil {
 			return target, info, nil
 		}
 
-		target = filepath.Join(letter, programFiles64, "Steam", userDataDirName)
+		target = filepath.Join(letter, programFiles64, "Steam")
 		info, statErr = os.Stat(target)
 		if statErr == nil {
 			return target, info, nil
