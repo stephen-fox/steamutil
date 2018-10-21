@@ -1,11 +1,9 @@
 package locations
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path"
-	"runtime"
 )
 
 const (
@@ -121,25 +119,4 @@ func IsInstalled() bool {
 	}
 
 	return true
-}
-
-// DataDirPath returns the path to Steam's data directory.
-func DataDirPath() (string, os.FileInfo, error) {
-	dirPath := ""
-
-	switch operatingSystem := runtime.GOOS; operatingSystem {
-	case "darwin":
-		dirPath = os.Getenv("HOME") + "/Library/Application Support/Steam"
-	case "linux":
-		return "", nil, errors.New("Linux is not currently supported :(")
-	case "windows":
-		return "", nil, errors.New("Windows is not currently supported :(")
-	}
-
-	i, err := os.Stat(dirPath)
-	if err != nil {
-		return dirPath, nil, err
-	}
-
-	return dirPath, i, nil
 }

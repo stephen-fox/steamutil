@@ -11,9 +11,7 @@ func TestDataDirPath(t *testing.T) {
 	p, i, err := DataDirPath()
 	if err != nil {
 		t.Error(err.Error())
-	}
-
-	if i == nil {
+	} else if i == nil {
 		t.Error("Info is nil")
 	}
 
@@ -45,9 +43,7 @@ func TestDefaultDataVerifier_UserDataDirPath(t *testing.T) {
 	p, i, err := v.UserDataDirPath()
 	if err != nil {
 		t.Error(err.Error())
-	}
-
-	if i == nil {
+	} else if i == nil {
 		t.Error("Info is nil")
 	}
 
@@ -86,9 +82,7 @@ func TestDefaultDataVerifier_ShortcutsFilePath(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 		return
-	}
-
-	if i == nil {
+	} else if i == nil {
 		t.Error("Info is nil")
 	}
 
