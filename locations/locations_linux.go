@@ -1,8 +1,18 @@
 package locations
 
+import (
+	"os"
+	"path"
+)
+
 // DataDirPath returns the path to Steam's data directory.
 func DataDirPath() (string, os.FileInfo, error) {
-	dirPath := os.Getenv("HOME") + "/Library/Application Support/Steam"
+	homePath, err := homePath()
+	if err != nil {
+		return dirPath, nil, err
+	}
+
+	dirPath := path.Join(homePath, ".steam", "root")
 
 	i, err := os.Stat(dirPath)
 	if err != nil {

@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
+	"errors"
 )
 
 const (
@@ -119,4 +121,14 @@ func IsInstalled() bool {
 	}
 
 	return true
+}
+
+func homePath() (string, error) {
+	homePath := os.Getenv("HOME")
+
+	if len(strings.TrimSpace(homePath)) == 0 {
+		return "", errors.New("The HOME environment variable is not set")
+	}
+
+	return homePath, nil
 }
