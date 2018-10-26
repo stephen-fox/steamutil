@@ -9,14 +9,14 @@ import (
 func DataDirPath() (string, os.FileInfo, error) {
 	homePath, err := homePath()
 	if err != nil {
-		return dirPath, nil, err
+		return "", nil, err
 	}
 
 	dirPath := path.Join(homePath, ".steam", "root")
 
 	i, err := os.Stat(dirPath)
 	if err != nil {
-		return dirPath, nil, err
+		return "", nil, err
 	}
 
 	return dirPath, i, nil
