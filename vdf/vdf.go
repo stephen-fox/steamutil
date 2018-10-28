@@ -35,7 +35,7 @@ type Vdf interface {
 
 type defaultVdf struct {
 	objects []Object
-	options Options
+	options Config
 }
 
 func (o *defaultVdf) Append(object Object) {
@@ -76,7 +76,7 @@ func (o *defaultVdf) String() (string, error) {
 	return sb.String(), nil
 }
 
-type Options struct {
+type Config struct {
 	Name        string
 	Version     FormatVersion
 	header      []byte
@@ -90,19 +90,19 @@ type Constructor interface {
 }
 
 type v1Constructor struct {
-	options Options
+	config Config
 }
 
 func (o *v1Constructor) Build(objects []Object) Vdf {
 	return &defaultVdf{
 		objects: objects,
-		options: o.options,
+		options: o.config,
 	}
 }
 
 func (o *v1Constructor) Read(r io.Reader) (Vdf, error) {
 	result := &defaultVdf{
-		options: o.options,
+		options: o.config,
 	}
 
 	s := bufio.NewScanner(r)
@@ -130,16 +130,16 @@ func (o *v1Constructor) split(data []byte, atEOF bool) (advance int, token []byt
 		return 0, nil, nil
 	}
 
-	if i := bytes.Index(data, o.options.header); i >= 0 {
-		return i + len(o.options.header), nil, nil
+	if i := bytes.Index(data, o.config.header); i >= 0 {
+		return i + len(o.config.header), nil, nil
 	}
 
-	if i := bytes.Index(data, o.options.objectDelim); i >= 0 {
-		return i + len(o.options.objectDelim), data[0:i], nil
+	if i := bytes.Index(data, o.config.objectDelim); i >= 0 {
+		return i + len(o.config.objectDelim), data[0:i], nil
 	}
 
-	if i := bytes.Index(data, o.options.footer); i >= 0 {
-		return i + len(o.options.footer), data[0:i], nil
+	if i := bytes.Index(data, o.config.footer); i >= 0 {
+		return i + len(o.config.footer), data[0:i], nil
 	}
 
 	if atEOF {
@@ -149,22 +149,22 @@ func (o *v1Constructor) split(data []byte, atEOF bool) (advance int, token []byt
 	return 0, nil, nil
 }
 
-func NewConstructor(options Options) (Constructor, error) {
-	if len(options.Name) == 0 {
+func NewConstructor(config Config) (Constructor, error) {
+	if len(config.Name) == 0 {
 		return &v1Constructor{}, errors.New("Please specify a name for the vdf")
 	}
 
-	switch options.Version {
+	switch config.Version {
 	case V1:
-		options.header = fileHeaderV1(options.Name)
-		options.objectDelim = []byte{8, 8, 0}
-		options.footer = []byte{8, 8, 8, 8}
+		config.header = fileHeaderV1(config.Name)
+		config.objectDelim = []byte{8, 8, 0}
+		config.footer = []byte{8, 8, 8, 8}
 		return &v1Constructor{
-			options: options,
+			config: config,
 		}, nil
 	}
 
-	return &v1Constructor{}, errors.New("The specified format is not supported - " + string(options.Version))
+	return &v1Constructor{}, errors.New("The specified format is not supported - '" + string(config.Version) + "'")
 }
 
 func fileHeaderV1(name string) []byte {

@@ -20,7 +20,7 @@ const (
 )
 
 func TestNewConstructorV1(t *testing.T) {
-	o := Options{
+	o := Config{
 		Name: "junk",
 		Version: V1,
 	}
@@ -32,7 +32,7 @@ func TestNewConstructorV1(t *testing.T) {
 }
 
 func TestNewConstructorUnknown(t *testing.T) {
-	o := Options{
+	o := Config{
 		Name: "junk",
 		Version: FormatVersion(3333),
 	}
@@ -44,7 +44,7 @@ func TestNewConstructorUnknown(t *testing.T) {
 }
 
 func TestV1Constructor_Read(t *testing.T) {
-	o := Options{
+	o := Config{
 		Name:    "shortcuts",
 		Version: V1,
 	}
@@ -93,7 +93,7 @@ func TestV1Constructor_Read(t *testing.T) {
 }
 
 func TestV1Constructor_Build(t *testing.T) {
-	o := Options{
+	o := Config{
 		Name:    "test",
 		Version: V1,
 	}
