@@ -32,20 +32,6 @@ func ReadVdfV1(r io.Reader) ([]Shortcut, error) {
 	return scs, nil
 }
 
-func NewShortcut(rawData string) (Shortcut, error) {
-	parser, err := vdf.NewRawObjectParser(rawData, vdf.V1)
-	if err != nil {
-		return Shortcut{}, err
-	}
-	
-	object, err := parser.Parse()
-	if err != nil {
-		return Shortcut{}, err
-	}
-	
-	return objectToShortcut(object), nil
-}
-
 func objectToShortcut(object vdf.Object) Shortcut {
 	var s Shortcut
 	
