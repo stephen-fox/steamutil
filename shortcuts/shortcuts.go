@@ -1,23 +1,14 @@
 package shortcuts
 
 import (
-	"encoding/binary"
 	"io"
-	"strconv"
 	"strings"
+
+	"github.com/stephen-fox/steamutil/vdf"
 )
 
 const (
-	// null is the null ASCII character.
-	null = "\x00"
-	// soh is the 'Start of Header' ASCII character.
-	soh = "\x01"
-	// stx is the 'Start of Text' ASCII character.
-	stx = "\x02"
-
-	stringField = soh
-	intField    = stx
-	sliceField  = null
+	header = "shortcuts"
 
 	appNameField            = "AppName"
 	exePathField            = "Exe"
@@ -32,17 +23,6 @@ const (
 	lastPlayTimeField       = "LastPlayTime"
 	tagsField               = "tags"
 )
-
-const (
-	boolValue valueType = iota
-	idValue
-	stringValue
-	doubleQuoteString
-	int32Value
-	sliceValue
-)
-
-type valueType int
 
 type Shortcut struct {
 	Id                 int
@@ -60,221 +40,139 @@ type Shortcut struct {
 	Tags               []string
 }
 
-func (o Shortcut) VdfV1String(footer []byte) string {
-	sb := &strings.Builder{}
-
-	for _, f := range o.fields() {
-		f.appendFieldV1(sb)
+func (o *Shortcut) Equals(s Shortcut) bool {
+	if o.Id != s.Id {
+		return false
 	}
 
-	if len(footer) > 0 {
-		sb.Write(footer)
+	if o.AppName != s.AppName {
+		return false
 	}
 
-	return sb.String()
-}
-
-func (o Shortcut) fields() []vdfField {
-	var fields []vdfField
-
-	fields = append(fields, vdfField{
-		valueType: idValue,
-		idValue:   o.Id,
-	})
-
-	fields = append(fields, vdfField{
-		name:        appNameField,
-		valueType:   stringValue,
-		stringValue: o.AppName,
-	})
-
-	fields = append(fields, vdfField{
-		name:        exePathField,
-		valueType:   doubleQuoteString,
-		stringValue: o.ExePath,
-	})
-
-	fields = append(fields, vdfField{
-		name:        startDirField,
-		valueType:   doubleQuoteString,
-		stringValue: o.StartDir,
-	})
-
-	fields = append(fields, vdfField{
-		name:        iconPathField,
-		valueType:   stringValue,
-		stringValue: o.IconPath,
-	})
-
-	fields = append(fields, vdfField{
-		name:        shortcutPathField,
-		valueType:   stringValue,
-		stringValue: o.ShortcutPath,
-	})
-
-	fields = append(fields, vdfField{
-		name:        launchOptionsField,
-		valueType:   stringValue,
-		stringValue: o.LaunchOptions,
-	})
-
-	fields = append(fields, vdfField{
-		name:      isHiddenField,
-		valueType: boolValue,
-		boolValue: o.IsHidden,
-	})
-
-	fields = append(fields, vdfField{
-		name:      allowDesktopConfigField,
-		valueType: boolValue,
-		boolValue: o.AllowDesktopConfig,
-	})
-
-	fields = append(fields, vdfField{
-		name:      allowOverlayField,
-		valueType: boolValue,
-		boolValue: o.AllowOverlay,
-	})
-
-	fields = append(fields, vdfField{
-		name:      isOpenVrField,
-		valueType: boolValue,
-		boolValue: o.IsOpenVr,
-	})
-
-	fields = append(fields, vdfField{
-		name:       lastPlayTimeField,
-		valueType:  int32Value,
-		int32Value: o.LastPlayTimeEpoch,
-	})
-
-	fields = append(fields, vdfField{
-		name:       tagsField,
-		valueType:  sliceValue,
-		sliceValue: o.Tags,
-	})
-
-	return fields
-}
-
-type vdfField struct {
-	name        string
-	valueType   valueType
-	stringValue string
-	sliceValue  []string
-	idValue     int
-	boolValue   bool
-	int32Value  int32
-}
-
-func (o vdfField) appendFieldV1(sb *strings.Builder) {
-	switch o.valueType {
-	case stringValue:
-		o.appendStringV1(sb)
-	case doubleQuoteString:
-		o.appendDoubleQuoteStringV1(sb)
-	case idValue:
-		o.appendIdV1(sb)
-	case boolValue:
-		o.appendBoolV1(sb)
-	case int32Value:
-		o.appendInt32V1(sb)
-	case sliceValue:
-		o.appendSliceV1(sb)
-	default:
-		sb.WriteString(null)
-	}
-}
-
-func (o vdfField) appendBoolV1(sb *strings.Builder) {
-	sb.WriteString(intField)
-	sb.WriteString(o.name)
-	sb.WriteString(null)
-
-	if o.boolValue {
-		sb.WriteString(soh)
-	} else {
-		sb.WriteString(null)
+	if o.ExePath != s.ExePath {
+		return false
 	}
 
-	sb.WriteString(strings.Repeat(null, 3))
-}
-
-func (o vdfField) appendStringV1(sb *strings.Builder){
-	sb.WriteString(stringField)
-	sb.WriteString(o.name)
-	sb.WriteString(null)
-
-	if len(o.stringValue) > 0 {
-		sb.WriteString(o.stringValue)
+	if o.StartDir != s.StartDir {
+		return false
 	}
 
-	sb.WriteString(null)
-}
-
-func (o vdfField) appendDoubleQuoteStringV1(sb *strings.Builder) {
-	sb.WriteString(stringField)
-	sb.WriteString(o.name)
-	sb.WriteString(null)
-
-	if len(o.stringValue) > 0 {
-		sb.WriteString("\"")
-		sb.WriteString(o.stringValue)
-		sb.WriteString("\"")
+	if o.IconPath != s.IconPath {
+		return false
 	}
 
-	sb.WriteString(null)
-}
-
-func (o vdfField) appendIdV1(sb *strings.Builder) {
-	sb.WriteString(strconv.Itoa(o.idValue))
-	sb.WriteString(null)
-}
-
-func (o vdfField) appendInt32V1(sb *strings.Builder) {
-	sb.WriteString(intField)
-	sb.WriteString(o.name)
-	sb.WriteString(null)
-	b := make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, uint32(o.int32Value))
-	sb.WriteString(string(b))
-}
-
-func (o vdfField) appendSliceV1(sb *strings.Builder) {
-	sb.WriteString(null)
-	sb.WriteString(o.name)
-
-	for i, v := range o.sliceValue {
-		sb.WriteString(null)
-		sb.WriteString(stringField)
-		sb.WriteString(strconv.Itoa(i))
-		sb.WriteString(null)
-		sb.WriteString(v)
+	if o.ShortcutPath != s.ShortcutPath {
+		return false
 	}
 
-	sb.WriteString(null)
+	if o.LaunchOptions != s.LaunchOptions {
+		return false
+	}
+
+	if o.IsHidden != s.IsHidden {
+		return false
+	}
+
+	if o.AllowDesktopConfig != s.AllowDesktopConfig {
+		return false
+	}
+
+	if o.AllowOverlay != s.AllowOverlay {
+		return false
+	}
+
+	if o.IsOpenVr != s.IsOpenVr {
+		return false
+	}
+
+	if o.LastPlayTimeEpoch != s.LastPlayTimeEpoch {
+		return false
+	}
+
+	if len(o.Tags) != len(s.Tags) {
+		return false
+	}
+
+	for i := range o.Tags {
+		if o.Tags[i] != s.Tags[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (o *Shortcut) object() vdf.Object {
+	object := vdf.NewEmptyObject()
+
+	object.Append(vdf.NewIdField(o.Id))
+
+	object.Append(vdf.NewStringField(appNameField, o.AppName))
+
+	object.Append(vdf.NewStringField(exePathField, appendDoubleQuotesIfNeeded(o.ExePath)))
+
+	object.Append(vdf.NewStringField(startDirField, appendDoubleQuotesIfNeeded(o.StartDir)))
+
+	object.Append(vdf.NewStringField(iconPathField, o.IconPath))
+
+	object.Append(vdf.NewStringField(shortcutPathField, o.ShortcutPath))
+
+	object.Append(vdf.NewStringField(launchOptionsField, o.LaunchOptions))
+
+	object.Append(vdf.NewBoolField(isHiddenField, o.IsHidden))
+
+	object.Append(vdf.NewBoolField(allowDesktopConfigField, o.AllowDesktopConfig))
+
+	object.Append(vdf.NewBoolField(allowOverlayField, o.AllowOverlay))
+
+	object.Append(vdf.NewBoolField(isOpenVrField, o.IsOpenVr))
+
+	object.Append(vdf.NewInt32Field(lastPlayTimeField, o.LastPlayTimeEpoch))
+
+	object.Append(vdf.NewSliceField(tagsField, o.Tags))
+
+	return object
+}
+
+func appendDoubleQuotesIfNeeded(s string) string {
+	doubleQuote := "\""
+
+	if !strings.HasPrefix(s, doubleQuote) {
+		s = doubleQuote + s
+	}
+
+	if !strings.HasSuffix(s, doubleQuote) {
+		s = s + doubleQuote
+	}
+
+	return s
 }
 
 func WriteVdfV1(shortcuts []Shortcut, w io.Writer) error {
-	_, err := w.Write(fileHeader)
+	config := vdf.Config{
+		Name:    header,
+		Version: vdf.V1,
+	}
+
+	c, err := vdf.NewConstructor(config)
 	if err != nil {
 		return err
 	}
 
-	for i, s := range shortcuts {
-		var footer []byte
+	var objects []vdf.Object
 
-		if i < len(shortcuts) - 1 {
-			footer = shortcutsDelim
-		}
-
-		_, err := w.Write([]byte(s.VdfV1String(footer)))
-		if err != nil {
-			return err
-		}
+	for _, s := range shortcuts {
+		objects = append(objects, s.object())
 	}
 
-	_, err = w.Write(fileFooter)
+	v := c.Build(objects)
+
+	s, err := v.String()
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write([]byte(s))
 	if err != nil {
 		return err
 	}

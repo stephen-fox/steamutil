@@ -3,14 +3,11 @@ package shortcuts
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/binary"
 	"os"
-	"strconv"
-	"strings"
 	"testing"
 )
 
-func TestShortcut_VdfV1String(t *testing.T) {
+func TestWriteVdfV1(t *testing.T) {
 	s := Shortcut{
 		Id:                0,
 		AppName:           "Chess",
@@ -26,18 +23,30 @@ func TestShortcut_VdfV1String(t *testing.T) {
 		},
 	}
 
-	result := s.VdfV1String([]byte{})
-	sb := &strings.Builder{}
-	handJamShortcutToVdfV1(s, sb)
-	data := sb.String()
+	b := bytes.NewBuffer(nil)
 
-	if result != data {
-		t.Error("Shortcut string is not equal to data:\nExp: '" + data + "'\nGot: '" + result + "'")
+	err := WriteVdfV1([]Shortcut{s}, b)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	scs, err := Shortcuts(b)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	l := len(scs)
+	if l != 1 {
+		t.Fatal("Unexpected number of shortcuts -", l)
+	}
+
+	if !scs[0].Equals(s) {
+		t.Fatal("Shortcuts are not equal")
 	}
 }
 
-func TestWriteVdfV1(t *testing.T) {
-	shortcuts := []Shortcut{
+func TestWriteVdfV1MultipleEntries(t *testing.T) {
+	scs := []Shortcut{
 		{
 			Id:                0,
 			AppName:           "My Cool app",
@@ -82,30 +91,30 @@ func TestWriteVdfV1(t *testing.T) {
 		},
 	}
 
-	rawData := bytes.NewBuffer([]byte{})
-	err := WriteVdfV1(shortcuts, rawData)
+	buffer := bytes.NewBuffer(nil)
+	err := WriteVdfV1(scs, buffer)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
-	sb := &strings.Builder{}
-	sb.Write(fileHeader)
-	for i, s := range shortcuts {
-		handJamShortcutToVdfV1(s, sb)
-		if i < len(shortcuts) - 1 {
-			sb.Write(shortcutsDelim)
+	scsReadBack, err := Shortcuts(buffer)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	l := len(scsReadBack)
+	if l != len(scs) {
+		t.Fatal("Read back unexpected number of shortcuts -", l)
+	}
+
+	for i := range scs {
+		if !scs[i].Equals(scsReadBack[i]) {
+			t.Fatal("Shortcut ", i, "is not equal")
 		}
-	}
-	sb.Write(fileFooter)
-
-	data := rawData.String()
-	expected := sb.String()
-	if data != expected {
-		t.Error("Shortcut file data is not equal to expected\nExp: '" + expected + "'\nGot: '" + data + "'")
 	}
 }
 
-func TestReadAndWrite(t *testing.T) {
+func TestReadAndWriteFromFile(t *testing.T) {
 	p, err := shortcutsVdfV1TestPath()
 	if err != nil {
 		t.Error(err.Error())
@@ -122,7 +131,7 @@ func TestReadAndWrite(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	newFileBuffer := bytes.NewBuffer([]byte{})
+	newFileBuffer := bytes.NewBuffer(nil)
 
 	err = WriteVdfV1(shortcuts, newFileBuffer)
 	if err != nil {
@@ -147,129 +156,4 @@ func TestReadAndWrite(t *testing.T) {
 	if newHash != originalHash {
 		t.Error("Hashes do not match")
 	}
-}
-
-func handJamShortcutToVdfV1(s Shortcut, sb *strings.Builder) {
-	sb.WriteString(strconv.Itoa(s.Id))
-	sb.WriteString(null)
-	sb.WriteString(stringField)
-	sb.WriteString(appNameField)
-	sb.WriteString(null)
-	sb.WriteString(s.AppName)
-	sb.WriteString(null)
-
-	sb.WriteString(stringField)
-	sb.WriteString(exePathField)
-	sb.WriteString(null)
-	sb.WriteString("\"")
-	sb.WriteString(s.ExePath)
-	sb.WriteString("\"")
-	sb.WriteString(null)
-
-	sb.WriteString(stringField)
-	sb.WriteString(startDirField)
-	sb.WriteString(null)
-	sb.WriteString("\"")
-	sb.WriteString(s.StartDir)
-	sb.WriteString("\"")
-	sb.WriteString(null)
-
-	sb.WriteString(stringField)
-	sb.WriteString(iconPathField)
-	sb.WriteString(null)
-	if len(s.IconPath) > 0 {
-		sb.WriteString(s.IconPath)
-	}
-	sb.WriteString(null)
-
-	sb.WriteString(stringField)
-	sb.WriteString(shortcutPathField)
-	sb.WriteString(null)
-	if len(s.ShortcutPath) > 0 {
-		sb.WriteString(s.ShortcutPath)
-	}
-	sb.WriteString(null)
-
-	sb.WriteString(stringField)
-	sb.WriteString(launchOptionsField)
-	sb.WriteString(null)
-	if len(s.LaunchOptions) > 0 {
-		sb.WriteString(s.LaunchOptions)
-	}
-	sb.WriteString(null)
-
-	sb.WriteString(intField)
-	sb.WriteString(isHiddenField)
-	sb.WriteString(null)
-	if s.IsHidden {
-		sb.WriteString(soh)
-	} else {
-		sb.WriteString(null)
-	}
-	sb.WriteString(strings.Repeat(null, 3))
-
-	sb.WriteString(intField)
-	sb.WriteString(allowDesktopConfigField)
-	sb.WriteString(null)
-	if s.AllowDesktopConfig {
-		sb.WriteString(soh)
-	} else {
-		sb.WriteString(null)
-	}
-	sb.WriteString(strings.Repeat(null, 3))
-
-	sb.WriteString(intField)
-	sb.WriteString(allowOverlayField)
-	sb.WriteString(null)
-	if s.AllowOverlay {
-		sb.WriteString(soh)
-	} else {
-		sb.WriteString(null)
-	}
-	sb.WriteString(strings.Repeat(null, 3))
-
-	sb.WriteString(intField)
-	sb.WriteString(isOpenVrField)
-	sb.WriteString(null)
-	if s.IsHidden {
-		sb.WriteString(soh)
-	} else {
-		sb.WriteString(null)
-	}
-	sb.WriteString(strings.Repeat(null, 3))
-
-	sb.WriteString(intField)
-	sb.WriteString(lastPlayTimeField)
-	sb.WriteString(null)
-	b := make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, uint32(s.LastPlayTimeEpoch))
-	sb.Write(b)
-
-	sb.WriteString(null)
-	sb.WriteString(tagsField)
-	for i, v := range s.Tags {
-		sb.WriteString(null)
-		sb.WriteString(soh)
-		sb.WriteString(strconv.Itoa(i))
-		sb.WriteString(null)
-		sb.WriteString(v)
-	}
-
-	sb.WriteString(null)
-}
-
-func setupTestDataOutputDir() (string, error) {
-	rp, err := repoPath()
-	if err != nil {
-		return "", err
-	}
-
-	fullPath := rp + testDataOutputSubDir
-
-	err = os.MkdirAll(fullPath, 0700)
-	if err != nil {
-		return "", err
-	}
-
-	return fullPath, nil
 }
