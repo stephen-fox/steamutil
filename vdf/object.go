@@ -9,6 +9,12 @@ import (
 	"unicode"
 )
 
+const (
+	// IdFieldNameMagicV1 is used to identify the ID field, as the
+	// field is unnamed in the V1 format.
+	IdFieldNameMagicV1 = "reserved_id_v1"
+)
+
 type Object interface {
 	Fields() []Field
 	Append(field Field)
@@ -99,6 +105,7 @@ func (o *v1ObjectParser) parseId() error {
 	}
 
 	o.result.Append(&defaultField{
+		name:      IdFieldNameMagicV1,
 		valueType: idValue,
 		idValue:   i,
 	})
