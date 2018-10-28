@@ -7,7 +7,7 @@ import (
 	"github.com/stephen-fox/steamutil/vdf"
 )
 
-func Shortcuts(r io.Reader) ([]Shortcut, error) {
+func ReadVdfV1(r io.Reader) ([]Shortcut, error) {
 	config := vdf.Config{
 		Name:    header,
 		Version: vdf.V1,

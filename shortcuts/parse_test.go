@@ -28,7 +28,7 @@ func TestShortcutsFromFile(t *testing.T) {
 	}
 	defer f.Close()
 
-	shortcuts, err := Shortcuts(f)
+	shortcuts, err := ReadVdfV1(f)
 	if err != nil {
 		t.Error(err.Error())
 	}

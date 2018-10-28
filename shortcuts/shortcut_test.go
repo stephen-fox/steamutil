@@ -30,7 +30,7 @@ func TestWriteVdfV1(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	scs, err := Shortcuts(b)
+	scs, err := ReadVdfV1(b)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -97,7 +97,7 @@ func TestWriteVdfV1MultipleEntries(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	scsReadBack, err := Shortcuts(buffer)
+	scsReadBack, err := ReadVdfV1(buffer)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -126,7 +126,7 @@ func TestReadAndWriteFromFile(t *testing.T) {
 	}
 	defer f.Close()
 
-	shortcuts, err := Shortcuts(f)
+	shortcuts, err := ReadVdfV1(f)
 	if err != nil {
 		t.Error(err.Error())
 	}
