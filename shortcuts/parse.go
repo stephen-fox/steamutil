@@ -2,10 +2,25 @@ package shortcuts
 
 import (
 	"io"
+	"os"
 	"strings"
 
 	"github.com/stephen-fox/steamutil/vdf"
 )
+
+func ReadVdfV1File(f *os.File) ([]Shortcut, error) {
+	scs, err := ReadVdfV1(f)
+	if err != nil {
+		return []Shortcut{}, err
+	}
+
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		return []Shortcut{}, err
+	}
+
+	return scs, nil
+}
 
 func ReadVdfV1(r io.Reader) ([]Shortcut, error) {
 	config := vdf.Config{

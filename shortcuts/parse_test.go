@@ -16,7 +16,7 @@ const (
 	threeEntriesVdfName  = "3-entries.vdf"
 )
 
-func TestShortcutsFromFile(t *testing.T) {
+func TestReadVdfV1File(t *testing.T) {
 	rp, err := shortcutsVdfV1TestPath()
 	if err != nil {
 		t.Error(err.Error())
@@ -28,7 +28,7 @@ func TestShortcutsFromFile(t *testing.T) {
 	}
 	defer f.Close()
 
-	shortcuts, err := ReadVdfV1(f)
+	shortcuts, err := ReadVdfV1File(f)
 	if err != nil {
 		t.Error(err.Error())
 	}
