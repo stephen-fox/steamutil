@@ -11,7 +11,6 @@ const (
 	boolValue FieldValueType = iota
 	idValue
 	stringValue
-	doubleQuoteString
 	int32Value
 	sliceValue
 )
@@ -82,8 +81,6 @@ func (o defaultField) appendFieldV1(sb *strings.Builder) {
 	switch o.valueType {
 	case stringValue:
 		o.appendStringV1(sb)
-	case doubleQuoteString:
-		o.appendDoubleQuoteStringV1(sb)
 	case idValue:
 		o.appendIdV1(sb)
 	case boolValue:
