@@ -25,6 +25,7 @@ type Field interface {
 	IdValue() int
 	BoolValue() bool
 	Int32Value() int32
+	UntypedValue() interface{}
 	Append(sb *strings.Builder, version FormatVersion) error
 }
 
@@ -67,6 +68,25 @@ func (o *defaultField) BoolValue() bool {
 
 func (o *defaultField) Int32Value() int32 {
 	return o.int32Value
+}
+
+func (o *defaultField) UntypedValue() interface{} {
+	var i interface{}
+
+	switch o.ValueType() {
+	case idValue:
+		i = o.IdValue()
+	case stringValue:
+		i = o.StringValue()
+	case boolValue:
+		i = o.BoolValue()
+	case int32Value:
+		i = o.Int32Value()
+	case sliceValue:
+		i = o.SliceValue()
+	}
+
+	return i
 }
 
 func (o *defaultField) Append(sb *strings.Builder, version FormatVersion) error {
