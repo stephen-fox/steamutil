@@ -1,307 +1,88 @@
 package shortcuts
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/binary"
-	"errors"
-	"fmt"
 	"io"
-	"strconv"
 	"strings"
-	"unicode"
+
+	"github.com/stephen-fox/steamutil/vdf"
 )
 
-type RawShortcutParser interface {
-	Parse() (Shortcut, error)
-}
-
-type defaultRawShortcutParser struct {
-	gotId bool
-	raw   string
-	wip   Shortcut
-}
-
-func (o *defaultRawShortcutParser) Parse() (Shortcut, error) {
-	if len(o.raw) == 0 {
-		return o.wip, nil
+func ReadVdfV1(r io.Reader) ([]Shortcut, error) {
+	config := vdf.Config{
+		Name:    header,
+		Version: vdf.V1,
 	}
 
-	if !o.gotId {
-		err := o.parseId()
-		if err != nil {
-			return o.wip, err
-		}
-	}
-
-	currentValueType, err := o.parseCurrentValueType()
+	c, err := vdf.NewConstructor(config)
 	if err != nil {
-		return o.wip, err
+		return []Shortcut{}, err
 	}
 
-	currentFieldName, isEnd, err := o.parseFieldName()
+	v, err := c.Read(r)
 	if err != nil {
-		return o.wip, err
+		return []Shortcut{}, err
 	}
 
-	if isEnd {
-		return o.wip, nil
+	var scs []Shortcut
+
+	for _, o := range v.Objects() {
+		scs = append(scs, objectToShortcut(o))
 	}
 
-	value, err := o.value(currentValueType)
-	if err != nil {
-		return o.wip, err
-	}
-
-	switch currentFieldName {
-	case appNameField:
-		o.wip.AppName = value
-	case exePathField:
-		o.wip.ExePath = trimDoubleQuote(value)
-	case startDirField:
-		o.wip.StartDir = trimDoubleQuote(value)
-	case iconPathField:
-		o.wip.IconPath = trimDoubleQuote(value)
-	case shortcutPathField:
-		o.wip.ShortcutPath = trimDoubleQuote(value)
-	case launchOptionsField:
-		o.wip.LaunchOptions = value
-	case isHiddenField:
-		o.wip.IsHidden = parseRawBoolValue(value)
-	case allowDesktopConfigField:
-		o.wip.AllowDesktopConfig = parseRawBoolValue(value)
-	case allowOverlayField:
-		o.wip.AllowOverlay = parseRawBoolValue(value)
-	case isOpenVrField:
-		o.wip.IsOpenVr = parseRawBoolValue(value)
-	case lastPlayTimeField:
-		o.wip.LastPlayTimeEpoch = parseRawInt32Value(value)
-	case tagsField:
-		o.wip.Tags = parseSlice(value)
-	}
-
-	return o.Parse()
-}
-
-func (o *defaultRawShortcutParser) parseId() error {
-	// Drop the ID + null.
-	value, ok := o.get(2, "")
-	if !ok {
-		return errors.New("Failed to cut ID field - index out of range")
-	}
-
-	i, err := strconv.Atoi(string(value[0]))
-	if err != nil {
-		return errors.New("Failed to parse shortcut ID - " + err.Error())
-	}
-
-	o.wip.Id = i
-	o.gotId = true
-
-	return nil
-}
-
-func (o *defaultRawShortcutParser) parseCurrentValueType() (valueType, error) {
-	value, ok := o.get(1, "")
-	if !ok {
-		return stringValue, errors.New("Failed to read type field - no bytes remaining")
-	}
-
-	var currentValueType valueType
-
-	switch string(value[0]) {
-	case sliceField:
-		currentValueType = sliceValue
-	case intField:
-		currentValueType = int32Value
-	case stringField:
-		currentValueType = stringValue
-	default:
-		return stringValue, fmt.Errorf("%s, %x", "Invalid field type", value)
-	}
-
-	return currentValueType, nil
-}
-
-func (o *defaultRawShortcutParser) parseFieldName() (name string, isEof bool, err error) {
-	// Drop the field name and the null terminator.
-	v, ok := o.get(strings.Index(o.raw, null) + 1, null)
-	if !ok {
-		return "", false, errors.New("Field name is missing null terminator")
-	}
-
-	if !unicode.IsLetter(rune(v[0])) {
-		return "", false, errors.New("Field name does not start with a letter")
-	}
-
-	return v, false, nil
-}
-
-func (o *defaultRawShortcutParser) value(current valueType) (string, error) {
-	var numToCopy int
-	var trim string
-
-	switch current {
-	case stringValue:
-		numToCopy = strings.Index(o.raw, null) + 1
-		trim = null
-	case int32Value:
-		numToCopy = 4
-	case sliceValue:
-		// TODO: Jank.
-		numToCopy = strings.LastIndex(o.raw, null) + 1
-		trim = null
-	default:
-		return "", errors.New("Unknown field type - " + strconv.Itoa(int(current)))
-	}
-
-	value, ok := o.get(numToCopy, trim)
-	if !ok {
-		return "", errors.New("Failed to read value field")
-	}
-
-	return value, nil
-}
-
-func (o *defaultRawShortcutParser) get(numberOfBytes int, trim string) (string, bool) {
-	if isIndexOutsideString(numberOfBytes - 1, o.raw) {
-		return "", false
-	}
-
-	value := o.raw[0:numberOfBytes]
-
-	o.raw = o.raw[numberOfBytes:]
-
-	if len(trim) > 0 {
-		value = strings.TrimSuffix(value, trim)
-	}
-
-	return value, true
-}
-
-var (
-	fileHeader     = []byte{0, 's', 'h', 'o', 'r', 't', 'c', 'u', 't', 's', 0, 0}
-	shortcutsDelim = []byte{8, 8, 0}
-	fileFooter     = []byte{8, 8, 8, 8}
-)
-
-func Shortcuts(r io.Reader) ([]Shortcut, error) {
-	var shortcuts []Shortcut
-	s := bufio.NewScanner(r)
-	s.Split(splitConfigData)
-
-	for s.Scan() {
-		sc, err := NewShortcut(s.Text())
-		if err != nil {
-			return shortcuts, err
-		}
-
-		shortcuts = append(shortcuts, sc)
-	}
-
-	return shortcuts, nil
-}
-
-func splitConfigData(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-
-	if i := bytes.Index(data, fileHeader); i >= 0 {
-		return i + len(fileHeader), nil, nil
-	}
-
-	if i := bytes.Index(data, shortcutsDelim); i >= 0 {
-		return i + len(shortcutsDelim), data[0:i], nil
-	}
-
-	if i := bytes.Index(data, fileFooter); i >= 0 {
-		return i + len(fileFooter), data[0:i], nil
-	}
-
-	if atEOF {
-		return len(data), data, nil
-	}
-
-	return 0, nil, nil
+	return scs, nil
 }
 
 func NewShortcut(rawData string) (Shortcut, error) {
-	return NewRawParser(rawData).Parse()
-}
-
-func NewRawParser(rawData string) RawShortcutParser {
-	return &defaultRawShortcutParser{
-		raw: rawData,
-	}
-}
-
-func parseRawInt32Value(raw string) int32 {
-	var i int32
-
-	err := binary.Read(strings.NewReader(raw), binary.LittleEndian, &i)
+	parser, err := vdf.NewRawObjectParser(rawData, vdf.V1)
 	if err != nil {
-		return 0
+		return Shortcut{}, err
 	}
-
-	return i
-}
-
-func parseRawBoolValue(raw string) bool {
-	var b bool
-
-	err := binary.Read(strings.NewReader(raw), binary.LittleEndian, &b)
+	
+	object, err := parser.Parse()
 	if err != nil {
-		return false
+		return Shortcut{}, err
 	}
-
-	return b
+	
+	return objectToShortcut(object), nil
 }
 
-func parseSlice(raw string) []string {
-	var values []string
-
-	raw = strings.TrimPrefix(raw, soh)
-
-	for i, s := range strings.Split(raw, null + soh) {
-		id, v, wasParsed := parseSliceField(s)
-		if i != id {
-			return values
+func objectToShortcut(object vdf.Object) Shortcut {
+	var s Shortcut
+	
+	for _, f := range object.Fields() {
+		switch f.Name() {
+		case vdf.IdFieldNameMagicV1:
+			s.Id = f.IdValue()
+		case appNameField:
+			s.AppName = f.StringValue()
+		case exePathField:
+			s.ExePath = trimDoubleQuote(f.StringValue())
+		case startDirField:
+			s.StartDir = trimDoubleQuote(f.StringValue())
+		case iconPathField:
+			s.IconPath = f.StringValue()
+		case shortcutPathField:
+			s.ShortcutPath = f.StringValue()
+		case launchOptionsField:
+			s.LaunchOptions = f.StringValue()
+		case isHiddenField:
+			s.IsHidden = f.BoolValue()
+		case allowDesktopConfigField:
+			s.AllowDesktopConfig = f.BoolValue()
+		case allowOverlayField:
+			s.AllowOverlay = f.BoolValue()
+		case isOpenVrField:
+			s.IsOpenVr = f.BoolValue()
+		case lastPlayTimeField:
+			s.LastPlayTimeEpoch = f.Int32Value()
+		case tagsField:
+			s.Tags = f.SliceValue()
 		}
-
-		if wasParsed {
-			values = append(values, v)
-		}
 	}
 
-	return values
-}
-
-func parseSliceField(raw string) (int, string, bool) {
-	values := strings.Split(raw, null)
-
-	if len(values) < 2 {
-		return 0, "", false
-	}
-
-	i, err := strconv.Atoi(values[0])
-	if err != nil {
-		return 0, "", false
-	}
-
-	return i, values[1], true
+	return s
 }
 
 func trimDoubleQuote(s string) string {
 	return strings.TrimPrefix(strings.TrimSuffix(s, "\""), "\"")
-}
-
-func isIndexOutsideString(index int, s string) bool {
-	totalIndexes := len(s) - 1
-
-	if totalIndexes - index < 0 {
-		return true
-	}
-
-	return false
 }

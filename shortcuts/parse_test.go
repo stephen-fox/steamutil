@@ -28,7 +28,7 @@ func TestShortcutsFromFile(t *testing.T) {
 	}
 	defer f.Close()
 
-	shortcuts, err := Shortcuts(f)
+	shortcuts, err := ReadVdfV1(f)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -71,12 +71,13 @@ func TestShortcutsFromFile(t *testing.T) {
 			}
 			if len(s.Tags) != 2 {
 				t.Error("Unexpected tags length for", s.Id, "-", len(s.Tags))
-			}
-			if s.Tags[0] != "junk" {
-				t.Error("Unexpected tag[0] for", s.Id, "- '" + s.Tags[0] + "'")
-			}
-			if s.Tags[1] != "eee" {
-				t.Error("Unexpected tag[1] for", s.Id, "- '" + s.Tags[1] + "'")
+			} else {
+				if s.Tags[0] != "junk" {
+					t.Error("Unexpected tag[0] for", s.Id, "- '" + s.Tags[0] + "'")
+				}
+				if s.Tags[1] != "eee" {
+					t.Error("Unexpected tag[1] for", s.Id, "- '" + s.Tags[1] + "'")
+				}
 			}
 		case 1:
 			if s.AppName != "Automator" {
@@ -138,16 +139,17 @@ func TestShortcutsFromFile(t *testing.T) {
 				t.Error("Unexpected is hidden for", s.Id, "-", s.IsHidden)
 			}
 			if !s.IsOpenVr {
-				t.Error("Unexpected is open cr for", s.Id, "-", s.IsOpenVr)
+				t.Error("Unexpected is open vr for", s.Id, "-", s.IsOpenVr)
 			}
 			if s.LastPlayTimeEpoch != 1538335537 {
 				t.Error("Unexpected last play time epoch for", s.Id, "-", s.LastPlayTimeEpoch)
 			}
 			if len(s.Tags) != 1 {
 				t.Error("Unexpected tags length for", s.Id, "-", len(s.Tags))
-			}
-			if s.Tags[0] != "junk" {
-				t.Error("Unexpected tag[0] for", s.Id, "- '" + s.Tags[0] + "'")
+			} else {
+				if s.Tags[0] != "junk" {
+					t.Error("Unexpected tag[0] for", s.Id, "- '" + s.Tags[0] + "'")
+				}
 			}
 		default:
 			t.Error("Unexpected shortcut in slice. ID is", s.Id)
