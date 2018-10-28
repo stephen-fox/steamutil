@@ -34,8 +34,11 @@ type defaultField struct {
 	stringValue string
 	sliceValue  []string
 	idValue     int
-	boolValue   bool
-	int32Value  int32
+	// TODO: vdf V1 format overloads int32 fields for storing bools.
+	// I would like this object to be agnostic to that,
+	// but it would need to know the format version
+	// when a caller requests the field's boolean value.
+	int32Value int32
 }
 
 func (o *defaultField) Name() string {
@@ -59,7 +62,7 @@ func (o *defaultField) IdValue() int {
 }
 
 func (o *defaultField) BoolValue() bool {
-	return o.boolValue
+	return int32ToBool(o.int32Value)
 }
 
 func (o *defaultField) Int32Value() int32 {
@@ -99,13 +102,7 @@ func (o defaultField) appendBoolV1(sb *strings.Builder) {
 	sb.WriteString(o.name)
 	sb.WriteString(null)
 
-	if o.boolValue {
-		sb.WriteString(soh)
-	} else {
-		sb.WriteString(null)
-	}
-
-	sb.WriteString(strings.Repeat(null, 3))
+	binary.Write(sb, binary.LittleEndian, o.int32Value)
 }
 
 func (o defaultField) appendStringV1(sb *strings.Builder){
@@ -165,9 +162,9 @@ func (o defaultField) appendSliceV1(sb *strings.Builder) {
 
 func NewBoolField(name string, value bool) Field {
 	return &defaultField{
-		name:      name,
-		valueType: boolValue,
-		boolValue: value,
+		name:       name,
+		valueType:  int32Value,
+		int32Value: boolToInt32(value),
 	}
 }
 
@@ -200,4 +197,20 @@ func NewIdField(value int) Field {
 		valueType: idValue,
 		idValue:   value,
 	}
+}
+
+func int32ToBool(i int32) bool {
+	if i == 0 {
+		return false
+	}
+
+	return true
+}
+
+func boolToInt32(b bool) int32 {
+	if b {
+		return 1
+	}
+
+	return 0
 }

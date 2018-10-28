@@ -73,8 +73,6 @@ func (o *v1ObjectParser) Parse() (Object, error) {
 	}
 
 	switch currentValueType {
-	case boolValue:
-		f.boolValue = parseRawBoolValue(value)
 	case stringValue:
 		f.stringValue = value
 	case int32Value:
