@@ -13,6 +13,8 @@ const (
 	// IdFieldNameMagicV1 is used to identify the ID field, as the
 	// field is unnamed in the V1 format.
 	IdFieldNameMagicV1 = "reserved_id_v1"
+
+	idFieldMaxLength = 10
 )
 
 type Object interface {
@@ -96,8 +98,8 @@ func (o *v1ObjectParser) parseId() error {
 	// Find the ID integer.
 	numBytes := 0
 	for i := range o.raw {
-		if numBytes > 10 {
-			return errors.New("ID field is grater than maximum size")
+		if numBytes > idFieldMaxLength {
+			return errors.New("ID field is grater than maximum size of " + strconv.Itoa(idFieldMaxLength))
 		} else if unicode.IsDigit(rune(o.raw[i])) {
 			numBytes = numBytes + 1
 		} else {
