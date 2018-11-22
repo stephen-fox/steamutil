@@ -93,21 +93,37 @@ func (o *v1ObjectParser) Parse() (Object, error) {
 }
 
 func (o *v1ObjectParser) parseId() error {
+	// Find the ID integer.
+	numBytes := 0
+	for i := range o.raw {
+		if numBytes > 10 {
+			return errors.New("ID field is grater than maximum size")
+		} else if unicode.IsDigit(rune(o.raw[i])) {
+			numBytes = numBytes + 1
+		} else {
+			break
+		}
+	}
+
+	if numBytes == 0 {
+		return errors.New("Failed to locate a valid ID string")
+	}
+
 	// Drop the ID + null.
-	value, ok := o.get(2, "")
+	idRaw, ok := o.get(numBytes + 1, "")
 	if !ok {
 		return errors.New("Failed to cut ID field - index out of range")
 	}
 
-	i, err := strconv.Atoi(string(value[0]))
+	id, err := strconv.Atoi(idRaw[0:len(idRaw) - 1])
 	if err != nil {
-		return errors.New("Failed to parse shortcut ID - " + err.Error())
+		return errors.New("Failed to parse ID - " + err.Error())
 	}
 
 	o.result.Append(&defaultField{
 		name:      IdFieldNameMagicV1,
 		valueType: idValue,
-		idValue:   i,
+		idValue:   id,
 	})
 
 	o.gotId = true
@@ -191,6 +207,10 @@ func (o *v1ObjectParser) get(numberOfBytes int, trim string) (string, bool) {
 	}
 
 	return value, true
+}
+
+func (o *v1ObjectParser) unget(raw string) {
+	o.raw = raw + o.raw
 }
 
 func NewEmptyObject() Object {
