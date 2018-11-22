@@ -209,10 +209,6 @@ func (o *v1ObjectParser) get(numberOfBytes int, trim string) (string, bool) {
 	return value, true
 }
 
-func (o *v1ObjectParser) unget(raw string) {
-	o.raw = raw + o.raw
-}
-
 func NewEmptyObject() Object {
 	return &defaultObject{}
 }
@@ -255,17 +251,6 @@ func parseRawInt32Value(raw string) int32 {
 	return i
 }
 
-func parseRawBoolValue(raw string) bool {
-	var b bool
-
-	err := binary.Read(strings.NewReader(raw), binary.LittleEndian, &b)
-	if err != nil {
-		return false
-	}
-
-	return b
-}
-
 func parseSlice(raw string) []string {
 	var values []string
 
@@ -298,10 +283,6 @@ func parseSliceField(raw string) (int, string, bool) {
 	}
 
 	return i, values[1], true
-}
-
-func trimDoubleQuote(s string) string {
-	return strings.TrimPrefix(strings.TrimSuffix(s, "\""), "\"")
 }
 
 func isIndexOutsideString(index int, s string) bool {
