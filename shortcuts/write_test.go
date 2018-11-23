@@ -2,7 +2,7 @@ package shortcuts
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"io"
 	"os"
 	"testing"
 )
@@ -117,43 +117,42 @@ func TestWriteVdfV1MultipleEntries(t *testing.T) {
 func TestReadAndWriteFromFile(t *testing.T) {
 	p, err := shortcutsVdfV1TestPath()
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	f, err := os.Open(p + threeEntriesVdfName)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 	defer f.Close()
 
 	shortcuts, err := ReadVdfV1(f)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
-	newFileBuffer := bytes.NewBuffer(nil)
+	newFileBuffer := bytes.NewBuffer([]byte{})
 
 	err = WriteVdfV1(shortcuts, newFileBuffer)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	_, err = f.Seek(0, 0)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
-	originalHash, err := getHash(f, sha1.New())
+	originalFileBuffer := bytes.NewBuffer([]byte{})
+	_, err = io.Copy(originalFileBuffer, f)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
-	newHash, err := getHash(newFileBuffer, sha1.New())
-	if err != nil {
-		t.Error(err.Error())
-	}
-
-	if newHash != originalHash {
-		t.Error("Hashes do not match")
+	newFileContents := newFileBuffer.String()
+	orignalFileContents := originalFileBuffer.String()
+	if newFileContents != orignalFileContents {
+		t.Fatal("New file contents do not match original file contents:\nOriginal:",
+		orignalFileContents + "\nNew:     ", newFileContents)
 	}
 }

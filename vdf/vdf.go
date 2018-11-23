@@ -35,7 +35,7 @@ type Vdf interface {
 
 type defaultVdf struct {
 	objects []Object
-	options Config
+	config  Config
 }
 
 func (o *defaultVdf) Append(object Object) {
@@ -49,29 +49,27 @@ func (o *defaultVdf) Objects() []Object {
 func (o *defaultVdf) String() (string, error) {
 	sb := &strings.Builder{}
 
-	switch o.options.Version {
+	switch o.config.Version {
 	case V1:
 		break
 	default:
-		return "", errors.New("The specified format is not supported - " + string(o.options.Version))
+		return "", errors.New("The specified format is not supported - " + string(o.config.Version))
 	}
 
-	sb.Write(o.options.header)
+	sb.Write(o.config.header)
 
-	for i, object := range o.objects {
+	for _, object := range o.objects {
 		for _, field := range object.Fields() {
-			err := field.Append(sb, o.options.Version)
+			err := field.Append(sb, o.config.Version)
 			if err != nil {
 				return "", err
 			}
 		}
 
-		if i < len(o.objects) - 1 {
-			sb.Write(o.options.objectDelim)
-		}
+		sb.Write(o.config.objectDelim)
 	}
 
-	sb.Write(o.options.footer)
+	sb.Write(o.config.footer)
 
 	return sb.String(), nil
 }
@@ -96,25 +94,29 @@ type v1Constructor struct {
 func (o *v1Constructor) Build(objects []Object) Vdf {
 	return &defaultVdf{
 		objects: objects,
-		options: o.config,
+		config:  o.config,
 	}
 }
 
 func (o *v1Constructor) Read(r io.Reader) (Vdf, error) {
 	result := &defaultVdf{
-		options: o.config,
+		config: o.config,
 	}
 
 	s := bufio.NewScanner(r)
 	s.Split(o.split)
 
 	for s.Scan() {
-		object, err := ParseRawObject(s.Text(), result.options.Version)
-		if err != nil {
-			return result, err
-		}
+		text := s.Text()
 
-		result.Append(object)
+		if len(strings.TrimSpace(text)) > 0 {
+			object, err := ParseRawObject(text, result.config.Version)
+			if err != nil {
+				return result, err
+			}
+
+			result.Append(object)
+		}
 	}
 
 	err := s.Err()
@@ -157,8 +159,9 @@ func NewConstructor(config Config) (Constructor, error) {
 	switch config.Version {
 	case V1:
 		config.header = fileHeaderV1(config.Name)
-		config.objectDelim = []byte{8, 8, 0}
-		config.footer = []byte{8, 8, 8, 8}
+		config.objectDelim = []byte{0, 8, 8}
+		config.footer = []byte{8, 8}
+
 		return &v1Constructor{
 			config: config,
 		}, nil
@@ -170,7 +173,7 @@ func NewConstructor(config Config) (Constructor, error) {
 func fileHeaderV1(name string) []byte {
 	header := []byte{0}
 	header = append(header, []byte(name)...)
-	header = append(header, 0, 0)
+	header = append(header,0)
 
 	return header
 }

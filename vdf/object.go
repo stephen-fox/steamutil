@@ -95,6 +95,10 @@ func (o *v1ObjectParser) Parse() (Object, error) {
 }
 
 func (o *v1ObjectParser) parseId() error {
+	if string(o.raw[0]) == null {
+		o.get(1, "")
+	}
+
 	// Find the ID integer.
 	numBytes := 0
 	for i := range o.raw {
@@ -156,10 +160,24 @@ func (o *v1ObjectParser) parseCurrentValueType() (FieldValueType, error) {
 }
 
 func (o *v1ObjectParser) parseFieldName() (name string, isEof bool, err error) {
+	numToGet := strings.Index(o.raw, null)
+
+	if numToGet < 0 {
+		// No null terminator is present.
+		numToGet = len(o.raw)
+	} else {
+		// Include the null terminator as well.
+		numToGet = numToGet + 1
+	}
+
 	// Drop the field name and the null terminator.
-	v, ok := o.get(strings.Index(o.raw, null) + 1, null)
+	v, ok := o.get(numToGet, null)
 	if !ok {
-		return "", false, errors.New("Field name is missing null terminator")
+		return "", false, errors.New("Field name is out of range")
+	}
+
+	if len(v) == 0 {
+		return "", false, errors.New("Field name is empty")
 	}
 
 	if !unicode.IsLetter(rune(v[0])) {
@@ -170,24 +188,28 @@ func (o *v1ObjectParser) parseFieldName() (name string, isEof bool, err error) {
 }
 
 func (o *v1ObjectParser) value(current FieldValueType) (string, error) {
-	var numToCopy int
+	var numToGet int
 	var trim string
 
 	switch current {
 	case stringValue:
-		numToCopy = strings.Index(o.raw, null) + 1
+		numToGet = strings.Index(o.raw, null) + 1
 		trim = null
 	case int32Value:
-		numToCopy = 4
+		numToGet = 4
 	case sliceValue:
-		// TODO: Jank.
-		numToCopy = strings.LastIndex(o.raw, null) + 1
-		trim = null
+		// TODO: Jank - but this file format is awful. Halp.
+		if strings.HasSuffix(o.raw, null) {
+			numToGet = strings.LastIndex(o.raw, null) + 1
+			trim = null
+		} else {
+			numToGet = len(o.raw)
+		}
 	default:
 		return "", errors.New("Unknown field type - " + strconv.Itoa(int(current)))
 	}
 
-	value, ok := o.get(numToCopy, trim)
+	value, ok := o.get(numToGet, trim)
 	if !ok {
 		return "", errors.New("Failed to read value field")
 	}

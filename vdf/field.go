@@ -152,6 +152,7 @@ func (o defaultField) appendDoubleQuoteStringV1(sb *strings.Builder) {
 }
 
 func (o defaultField) appendIdV1(sb *strings.Builder) {
+	sb.WriteString(null)
 	sb.WriteString(strconv.Itoa(o.idValue))
 	sb.WriteString(null)
 }
@@ -176,8 +177,6 @@ func (o defaultField) appendSliceV1(sb *strings.Builder) {
 		sb.WriteString(null)
 		sb.WriteString(v)
 	}
-
-	sb.WriteString(null)
 }
 
 func NewBoolField(name string, value bool) Field {

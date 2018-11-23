@@ -1,9 +1,6 @@
 package shortcuts
 
 import (
-	"encoding/hex"
-	"hash"
-	"io"
 	"os"
 	"path"
 	"testing"
@@ -13,17 +10,40 @@ const (
 	testDataSubDir       = "/.testdata/"
 	testDataOutputSubDir = testDataSubDir + "output/"
 	shortcutsVdfSubDir   = testDataSubDir + "shortcuts-vdf-v1/"
+	emptyVdfName         = "empty.vdf"
 	threeEntriesVdfName  = "3-entries.vdf"
 	tenEntriesVdfName    = "10-entries.vdf"
 )
 
-func TestReadVdfV1File(t *testing.T) {
-	rp, err := shortcutsVdfV1TestPath()
+func TestReadVdfV1FileEmpty(t *testing.T) {
+	testFilePath, err := shortcutsVdfV1TestPath()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	f, err := os.Open(rp + threeEntriesVdfName)
+	f, err := os.Open(testFilePath + emptyVdfName)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer f.Close()
+
+	scs, err := ReadVdfV1File(f)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if len(scs) > 0 {
+		t.Fatal("Empty shortcuts file should have produced no shortcuts - Got ", len(scs))
+	}
+}
+
+func TestReadVdfV1File(t *testing.T) {
+	testFilePath, err := shortcutsVdfV1TestPath()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	f, err := os.Open(testFilePath + threeEntriesVdfName)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -35,6 +55,10 @@ func TestReadVdfV1File(t *testing.T) {
 	}
 
 	var gotIds []int
+
+	if len(shortcuts) != 3 {
+		t.Fatal("Got unexpected number of shortcuts -", len(shortcuts))
+	}
 
 	for _, s := range shortcuts {
 		gotIds = append(gotIds, s.Id)
@@ -157,10 +181,6 @@ func TestReadVdfV1File(t *testing.T) {
 		}
 	}
 
-	if len(gotIds) != 3 {
-		t.Fatal("Did not get the epxected number of shortcut entries. Got -", len(gotIds))
-	}
-
 	if gotIds[0] != 0 {
 		t.Fatal("Shortcut ID at 0 is wrong. Got -", gotIds[0])
 	}
@@ -176,12 +196,12 @@ func TestReadVdfV1File(t *testing.T) {
 
 // TODO: Actually test values.
 func TestReadVdfV1File10Entries(t *testing.T) {
-	rp, err := shortcutsVdfV1TestPath()
+	testFilePath, err := shortcutsVdfV1TestPath()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	f, err := os.Open(rp + tenEntriesVdfName)
+	f, err := os.Open(testFilePath + tenEntriesVdfName)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -215,13 +235,4 @@ func repoPath() (string, error) {
 	}
 
 	return path.Dir(wd), nil
-}
-
-func getHash(r io.Reader, hash hash.Hash) (string, error) {
-	_, err := io.Copy(hash, r)
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }
