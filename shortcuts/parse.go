@@ -8,6 +8,10 @@ import (
 	"github.com/stephen-fox/steamutil/vdf"
 )
 
+func ReadFile(f *os.File) ([]Shortcut, error) {
+	return ReadVdfV1File(f)
+}
+
 func ReadVdfV1File(f *os.File) ([]Shortcut, error) {
 	scs, err := ReadVdfV1(f)
 	if err != nil {
@@ -20,6 +24,10 @@ func ReadVdfV1File(f *os.File) ([]Shortcut, error) {
 	}
 
 	return scs, nil
+}
+
+func Read(r io.Reader) ([]Shortcut, error) {
+	return ReadVdfV1(r)
 }
 
 func ReadVdfV1(r io.Reader) ([]Shortcut, error) {
