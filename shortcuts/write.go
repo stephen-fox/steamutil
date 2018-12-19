@@ -9,6 +9,10 @@ import (
 )
 
 const (
+	defaultFileMode = 0644
+)
+
+const (
 	Unchanged      UpdateResult = "No changes were made to the file"
 	CreatedNewFile UpdateResult = "Created new file"
 	UpdatedEntry   UpdateResult = "Updated existing entry in the file"
@@ -21,15 +25,27 @@ type UpdateResult string
 // CreateOrUpdateConfig provides configuration data for creating or updating
 // a shortcuts file.
 type CreateOrUpdateConfig struct {
-	Path      string
-	Mode      os.FileMode
+	// Path is the path to the shortcuts file.
+	Path string
+
+	// Mode is the mode to set the file to if a new file is created.
+	// This defaults to defaultFileMode if not specified.
+	Mode os.FileMode
+
+	// MatchName is the application name to match.
 	MatchName string
-	OnMatch   func(name string, match *Shortcut)
-	NoMatch   func(name string) (s Shortcut, doNothing bool)
+
+	// OnMatch is the function to execute when a shortcut meets the
+	// match criteria.
+	OnMatch func(name string, match *Shortcut)
+
+	// NoMatch is the function to execute when no shortcut is found
+	// for the provided match criteria.
+	NoMatch func(name string) (s Shortcut, doNothing bool)
 }
 
 // IsValid returns a non-nil error if the configuration is invalid.
-func (o CreateOrUpdateConfig) IsValid() error {
+func (o *CreateOrUpdateConfig) IsValid() error {
 	if len(o.MatchName) == 0 {
 		return errors.New("the shortcut name to match cannot be empty")
 	}
@@ -44,6 +60,10 @@ func (o CreateOrUpdateConfig) IsValid() error {
 
 	if o.NoMatch == nil {
 		return errors.New("the shortcut not matched function cannot be nil")
+	}
+
+	if o.Mode == 0 {
+		o.Mode = defaultFileMode
 	}
 
 	return nil
