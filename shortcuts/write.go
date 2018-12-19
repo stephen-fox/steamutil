@@ -45,6 +45,10 @@ func (o CreateOrUpdateConfig) IsValid() error {
 	return nil
 }
 
+func CreateOrUpdateFile(config CreateOrUpdateConfig) (UpdateResult, error) {
+	return CreateOrUpdateVdfV1File(config)
+}
+
 func CreateOrUpdateVdfV1File(config CreateOrUpdateConfig) (UpdateResult, error) {
 	err := config.IsValid()
 	if err != nil {
@@ -104,6 +108,10 @@ func CreateOrUpdateVdfV1File(config CreateOrUpdateConfig) (UpdateResult, error) 
 	return CreatedNewFile, nil
 }
 
+func OverwriateFile(f *os.File, scs []Shortcut) error {
+	return OverwriteVdfV1File(f, scs)
+}
+
 func OverwriteVdfV1File(f *os.File, scs []Shortcut) error {
 	_, err := f.Seek(0, 0)
 	if err != nil {
@@ -121,6 +129,10 @@ func OverwriteVdfV1File(f *os.File, scs []Shortcut) error {
 	}
 
 	return nil
+}
+
+func Write(shortcuts []Shortcut, w io.Writer) error {
+	return WriteVdfV1(shortcuts, w)
 }
 
 func WriteVdfV1(shortcuts []Shortcut, w io.Writer) error {
