@@ -25,7 +25,7 @@ type CreateOrUpdateConfig struct {
 	Mode      os.FileMode
 	MatchName string
 	OnMatch   func(name string, match *Shortcut)
-	NoMatch   func(name string) Shortcut
+	NoMatch   func(name string) (s Shortcut, doNothing bool)
 }
 
 // IsValid returns a non-nil error if the configuration is invalid.
@@ -97,10 +97,12 @@ func CreateOrUpdateVdfV1File(config CreateOrUpdateConfig) (UpdateResult, error) 
 	}
 
 	if result == Unchanged {
-		s := config.NoMatch(config.MatchName)
-		s.Id = len(currentScs)
-		currentScs = append(currentScs, s)
-		result = AddedNewEntry
+		s, doNothing := config.NoMatch(config.MatchName)
+		if !doNothing {
+			s.Id = len(currentScs)
+			currentScs = append(currentScs, s)
+			result = AddedNewEntry
+		}
 	}
 
 	err = OverwriteVdfV1File(f, currentScs)
