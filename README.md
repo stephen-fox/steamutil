@@ -21,7 +21,7 @@ Package shortcuts provides functionality for working with Steam's custom
 game shortcuts.
 
 - [Read a shortcuts file](examples/read-shortcuts-file/main.go)
-- [Create or update a shortcut file](examples/update-shortcuts-file/main.go)
+- [Create or update a shortcut entry](examples/update-shortcuts-file/main.go)
 
 #### vdf
 Package vdf provides functionality for working with Steam's .vdf file format.
