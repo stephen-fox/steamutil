@@ -27,19 +27,19 @@ type CreateOrUpdateConfig struct {
 
 func (o CreateOrUpdateConfig) IsValid() error {
 	if len(o.MatchName) == 0 {
-		return errors.New("The shortcut name to match cannot be empty")
+		return errors.New("the shortcut name to match cannot be empty")
 	}
 
 	if len(o.Path) == 0 {
-		return errors.New("The shortcut file path cannot be empty")
+		return errors.New("the shortcut file path cannot be empty")
 	}
 
 	if o.OnMatch == nil {
-		return errors.New("The shortcut match function cannot be nil")
+		return errors.New("the shortcut match function cannot be nil")
 	}
 
 	if o.NoMatch == nil {
-		return errors.New("The shortcut not matched function cannot be nil")
+		return errors.New("the shortcut not matched function cannot be nil")
 	}
 
 	return nil
