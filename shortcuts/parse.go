@@ -8,10 +8,13 @@ import (
 	"github.com/stephen-fox/steamutil/vdf"
 )
 
+// ReadFile reads the provided shortcuts data from an os.File.
 func ReadFile(f *os.File) ([]Shortcut, error) {
 	return ReadVdfV1File(f)
 }
 
+// ReadVdfV1File reads the provided shortcuts data from an os.File using the
+// VDF v1 format.
 func ReadVdfV1File(f *os.File) ([]Shortcut, error) {
 	scs, err := ReadVdfV1(f)
 	if err != nil {
@@ -26,10 +29,13 @@ func ReadVdfV1File(f *os.File) ([]Shortcut, error) {
 	return scs, nil
 }
 
+// Read reads the provided shortcuts data from an io.Reader.
 func Read(r io.Reader) ([]Shortcut, error) {
 	return ReadVdfV1(r)
 }
 
+// Read reads the provided shortcuts data from an io.Reader using the
+// VDF v1 format.
 func ReadVdfV1(r io.Reader) ([]Shortcut, error) {
 	config := vdf.Config{
 		Name:    header,

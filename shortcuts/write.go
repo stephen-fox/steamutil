@@ -15,8 +15,11 @@ const (
 	AddedNewEntry  UpdateResult = "Added new entry to the file"
 )
 
+// UpdateResult describes the result of creating or updating a shortcuts file.
 type UpdateResult string
 
+// CreateOrUpdateConfig provides configuration data for creating or updating
+// a shortcuts file.
 type CreateOrUpdateConfig struct {
 	Path      string
 	Mode      os.FileMode
@@ -25,6 +28,7 @@ type CreateOrUpdateConfig struct {
 	NoMatch   func(name string) Shortcut
 }
 
+// IsValid returns a non-nil error if the configuration is invalid.
 func (o CreateOrUpdateConfig) IsValid() error {
 	if len(o.MatchName) == 0 {
 		return errors.New("the shortcut name to match cannot be empty")
@@ -45,10 +49,13 @@ func (o CreateOrUpdateConfig) IsValid() error {
 	return nil
 }
 
+// CreateOrUpdateFile creates or updates a shortcuts file.
 func CreateOrUpdateFile(config CreateOrUpdateConfig) (UpdateResult, error) {
 	return CreateOrUpdateVdfV1File(config)
 }
 
+// CreateOrUpdateFile creates or updates a shortcuts file using the
+// VDF v1 format.
 func CreateOrUpdateVdfV1File(config CreateOrUpdateConfig) (UpdateResult, error) {
 	err := config.IsValid()
 	if err != nil {

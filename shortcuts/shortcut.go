@@ -23,6 +23,7 @@ const (
 	tagsField               = "tags"
 )
 
+// Shortcut represents a single shortcut data structure.
 type Shortcut struct {
 	Id                 int
 	AppName            string
@@ -39,6 +40,7 @@ type Shortcut struct {
 	Tags               []string
 }
 
+// Equals returns true if the Shortcut is the same as another.
 func (o *Shortcut) Equals(s Shortcut) bool {
 	if o.Id != s.Id {
 		return false
