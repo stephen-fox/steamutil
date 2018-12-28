@@ -1,17 +1,18 @@
 package locations
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
-	"errors"
 )
 
 const (
 	userDataDirName   = "userdata"
 	userConfigDirName = "config"
 	shortcutsFileName = "shortcuts.vdf"
+	gridDirName       = "grid"
 )
 
 // DataVerifier gets and verifies file and directory paths to data-related
@@ -30,6 +31,10 @@ type DataVerifier interface {
 	// ShortcutsFilePath returns the path to the shortcuts file for a
 	// given Steam user ID.
 	ShortcutsFilePath(userId string) (string, os.FileInfo, error)
+
+	// GridDirPath returns the path to the grid images directory
+	// for a given Steam user ID.
+	GridDirPath(userId string) (string, os.FileInfo, error)
 }
 
 type defaultDataVerifier struct {
@@ -80,6 +85,23 @@ func (o defaultDataVerifier) UserDataDirPath() (string, os.FileInfo, error) {
 
 func (o defaultDataVerifier) RootDirPath() string {
 	return o.dataDir
+}
+
+func (o defaultDataVerifier) GridDirPath(userId string) (string, os.FileInfo, error) {
+	dirPath := GridDirPath(o.dataDir, userId)
+
+	i, err := os.Stat(dirPath)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return dirPath, i, nil
+}
+
+// GridDirPath generates a path to the grid images directory for the specified
+// data directory and Steam user ID.
+func GridDirPath(dataDirPath string, userId string) string {
+	return path.Join(dataDirPath, userDataDirName, userId, userConfigDirName, gridDirName)
 }
 
 // ShortcutsFilePath generates a path to the shortcuts file for the specified

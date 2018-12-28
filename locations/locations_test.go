@@ -1,6 +1,7 @@
 package locations
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -78,7 +79,7 @@ func TestDefaultDataVerifier_ShortcutsFilePath(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	p, i, err := v.ShortcutsFilePath("34161670")
+	p, i, err := v.ShortcutsFilePath(getSomeUserId(v))
 	if err != nil {
 		t.Fatal(err.Error())
 		return
@@ -91,4 +92,46 @@ func TestDefaultDataVerifier_ShortcutsFilePath(t *testing.T) {
 	}
 
 	log.Println(p)
+}
+
+func TestDefaultDataVerifier_GridDirPath(t *testing.T) {
+	if !IsInstalled() {
+		t.Skip()
+	}
+
+	v, err := NewDataVerifier()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_, _, err = v.GridDirPath(getSomeUserId(v))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func getSomeUserId(dv DataVerifier) string {
+	if !IsInstalled() {
+		panic("Steam must be installed to get a user ID")
+	}
+
+	userDirPath, _, err := dv.UserDataDirPath()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	infos, err := ioutil.ReadDir(userDirPath)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for _, info := range infos {
+		if info.IsDir() {
+			return info.Name()
+		}
+	}
+
+	panic("No user IDs were found")
+
+	return ""
 }
