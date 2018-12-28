@@ -16,6 +16,10 @@ files and directories.
 - [Checking if Steam is installed](examples/is-steam-installed/main.go)
 - [Finding where Steam stores its data](examples/steam-data/main.go)
 
+#### naming
+Package naming provides functionality for generating and reversing Steam's
+(often silly) naming conventions and patterns.
+
 #### shortcuts
 Package shortcuts provides functionality for working with Steam's custom
 game shortcuts.
