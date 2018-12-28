@@ -1,11 +1,12 @@
 package locations
 
 import (
-	"os"
 	"errors"
-	"golang.org/x/sys/windows"
-	"strings"
+	"os"
 	"path/filepath"
+	"strings"
+
+	"golang.org/x/sys/windows"
 )
 
 const (
