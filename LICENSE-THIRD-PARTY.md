@@ -1,5 +1,4 @@
-# License for golang.org/x/sys
-
+# golang.org/x/sys
 Copyright (c) 2009 The Go Authors. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
