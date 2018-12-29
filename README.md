@@ -9,6 +9,11 @@ The following subsections will provide a high level overview of the APIs
 provided by this library. Examples will be provided for the more notable
 use cases in the [examples directory](examples/).
 
+#### grid
+Package grid provides functionality for working with Steam's grid (tile) icons.
+
+- [Adding a grid image for all Steam users](examples/add-grid-image/main.go)
+
 #### locations
 Package locations provides functionality for locating notable Steam application
 files and directories.
